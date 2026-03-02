@@ -1,0 +1,16 @@
+rag -> comme llm retrivieval augmented generation
+SOC manager -> im^plémenter ds SIEM
+usecases de testing 
+
+schéma fonctionnel du SIEM
+Comparatif preuve de fonctionnement 
+tests fonctionnels 
+YARA
+
+Fonctionnalités à détailler 
+
+Moindre fonctionnalités 
+
+
+
+
