@@ -1,2 +1,0 @@
-cargo new medtech-siem
-cd medtech-siem
