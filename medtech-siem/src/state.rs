@@ -1,4 +1,6 @@
-use std::sync::{Arc, Mutex};
-use crate::models::Log;
+use sqlx::PgPool;
 
-pub type SharedLogs = Arc<Mutex<Vec<Log>>>;
+#[derive(Clone)]
+pub struct AppState {
+    pub db: PgPool,
+}

@@ -1,0 +1,1 @@
+fn(axum::extract::State<AppState>) -> impl std::future::Future<Output = axum::Json<Vec<LogEntry>>> {get_logs}

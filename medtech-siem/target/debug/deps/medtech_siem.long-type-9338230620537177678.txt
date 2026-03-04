@@ -1,0 +1,1 @@
+fn(axum::extract::State<AppState>, axum::Json<IncomingLog>) -> impl std::future::Future<Output = axum::Json<&'static str>> {receive_log}
