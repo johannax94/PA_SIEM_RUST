@@ -34,3 +34,17 @@ Alertes
 Frontend
 
 Relier une mailbox pour les alertes (notification par mail)
+
+Les colonnes correspondantes à chaque types de logs seront gérées par le frontend (si logs proxy : url, timestamp etc.)
+
+Pour les tests finaux :
+
+        1 - générateur de logs en python ? 
+        2 - importer des vrais fichiers de logs (proxy squid, linux auth.log, pfsense) et créer un parser JSON ? Meilleure solution
+        3 - simuler une infra (relou)
+
+NEXT STEP : 
+
+queue ingestion
+batch insert
+rule engine async

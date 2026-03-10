@@ -1,0 +1,14 @@
+Accéder à la DB via shell SQL : 
+
+\c medtech_siem
+
+
+Envoyer des logs au serveur pour test (ici login_failed) :
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3000/logs" -ContentType "application/json" -Body '{
+"source_type":"application",
+"source_name":"medtech-api",
+"level":"warn",
+"event_type":"login_failed",
+"message":"Login failed",
+"metadata":null}'
