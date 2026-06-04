@@ -21,15 +21,15 @@ Avant de créer une alerte, vérifier si une alerte similaire existe déjà dans
 
 Structure du projet: 
 
-Ingestion API
+Ingestion API 
         ↓
-Queue (plus tard)
+Queue - on met les logs d sune queue pour éviter de saturer la DB 
         ↓
-Base de données (PostgreSQL)
+Base de données stockage
         ↓
-Moteur de règles
+Moteur de règles 
         ↓
-Alertes
+Alertes si règles correspondante
         ↓
 Frontend
 
@@ -39,7 +39,7 @@ Les colonnes correspondantes à chaque types de logs seront gérées par le fron
 
 Pour les tests finaux :
 
-        1 - générateur de logs en python ? 
+        1 - générateur de logs en python ? !!!
         2 - importer des vrais fichiers de logs (proxy squid, linux auth.log, pfsense) et créer un parser JSON ? Meilleure solution
         3 - simuler une infra (relou)
 
@@ -48,3 +48,25 @@ NEXT STEP :
 queue ingestion
 batch insert
 rule engine async
+
+API REST : plus maléable , plus sécurisé - quelles autres raisons ? 
+
+Problématique  : comment gérer un nombre colossale de logs ? 
+
+Fonctionnement des SIEM : HTTP → Queue → Worker → Batch DB → Rule Engine async POURQUOI ? 
+
+Client
+   ↓
+API (rapide)
+   ↓
+Queue
+   ↓
+Worker
+   ↓
+DB insert (stockage)
+   ↓
+Rule engine (moteur SIEM )
+   ↓
+Alerts DB
+
+SIEM final : comment l'incorporer dans une architecture d'entreprise ? 

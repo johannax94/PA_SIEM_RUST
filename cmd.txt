@@ -12,3 +12,7 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3000/logs" -ContentType "a
 "event_type":"login_failed",
 "message":"Login failed",
 "metadata":null}'
+
+npm run dev
+
+\d logs

@@ -1,27 +1,23 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use sqlx::FromRow;
+use chrono::NaiveDateTime;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IncomingLog {
-    pub source_type: String,
     pub source_name: String,
-    pub level: String,
     pub event_type: String,
+    pub severity: String,
     pub message: String,
-    pub metadata: Option<Value>,
+    pub raw_log: Value,
 }
 
-#[derive(Serialize, FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct LogEntry {
-    pub id: Uuid,
-    pub source_type: String,
+    pub id: uuid::Uuid,
     pub source_name: String,
-    pub level: String,
     pub event_type: String,
+    pub severity: String,
     pub message: String,
-    pub metadata: Option<Value>,
-    pub timestamp: DateTime<Utc>,
+    pub raw_log: Value,
+    pub created_at: NaiveDateTime,
 }
