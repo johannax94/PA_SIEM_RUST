@@ -42,6 +42,7 @@ async fn main() {
         .route("/logs", post(handlers::ingest::receive_log))
         .route("/logs", get(handlers::logs::get_logs))
         .route("/alerts", get(alerts::get_alerts))
+        .route("/register", post(auth::handlers::register))
         .layer(cors)
         .with_state(state);
 

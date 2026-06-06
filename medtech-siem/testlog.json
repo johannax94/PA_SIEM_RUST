@@ -1,0 +1,9 @@
+{
+  "source_name": "vpn-fw",
+  "event_type": "failed_login",
+  "severity": "medium",
+  "message": "failed login",
+  "raw_log": {
+    "ip": "10.0.0.5"
+  }
+}

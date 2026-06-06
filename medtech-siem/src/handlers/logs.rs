@@ -12,13 +12,13 @@ pub async fn get_logs(
         r#"
         SELECT *
         FROM logs
-        ORDER BY timestamp DESC
+        ORDER BY created_at DESC
         LIMIT 100
         "#
     )
     .fetch_all(&state.db)
     .await
-    .unwrap_or_else(|_| vec![]);
+    .expect("Erreur SQL logs");
 
     Json(logs)
 }
