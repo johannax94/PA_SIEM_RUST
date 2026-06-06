@@ -20,6 +20,7 @@ mod models;
 mod services;
 mod parsers;
 mod state;
+mod auth;
 
 #[tokio::main]
 async fn main() {

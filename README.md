@@ -1,6 +1,49 @@
 # PA_SIEM_RUST
 Creation of a complete SIEM using Rust language. 
 
+# MedTech SIEM
+
+## Démarrage
+
+Prérequis :
+
+* Docker
+* Docker Compose
+
+### Démarrage
+
+```bash
+docker compose up --build
+```
+
+### Accès
+
+Frontend :
+
+http://localhost:5173
+
+Backend :
+
+http://localhost:3000
+
+### API
+
+Logs :
+
+GET /logs
+
+Alertes :
+
+GET /alerts
+
+Ingestion :
+
+POST /logs
+
+```
+```
+
+
 Backend: Rust
 
 Frontend: React
