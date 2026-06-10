@@ -25,7 +25,7 @@ services:
       - db
 
     environment:
-      DATABASE_URL: postgres://postgres:vaiana@db:5432/medtech_siem
+      DATABASE_URL: postgres://postgres:postgres@db:5432/medtech_siem
 
     ports:
       - "3000:3000"
