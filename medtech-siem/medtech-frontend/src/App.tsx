@@ -1,8 +1,15 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import AlertsPage from "./pages/AlertsPage";
 import LogsPage from "./pages/LogsPage";
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
+  
+  function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "/login";
+}
   return (
     <BrowserRouter>
       <div style={{ display: "flex" }}>
@@ -17,7 +24,9 @@ function App() {
           }}
         >
           <h2>MedTech SIEM</h2>
-
+          <button onClick={logout}>
+            Logout
+          </button>
           <nav>
             <p>
               <Link to="/" style={{ color: "white" }}>
@@ -36,7 +45,23 @@ function App() {
         <div style={{ flex: 1, padding: "20px" }}>
           <Routes>
             <Route path="/" element={<AlertsPage />} />
-            <Route path="/logs" element={<LogsPage />} />
+            <Route
+              path="/alerts"
+              element={
+                <ProtectedRoute>
+                  <AlertsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <ProtectedRoute>
+                  <LogsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<LoginPage />} />
           </Routes>
         </div>
       </div>

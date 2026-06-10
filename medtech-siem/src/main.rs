@@ -1,4 +1,14 @@
+mod handlers;
+mod rules;
+mod db;
+mod models;
+mod services;
+mod parsers;
+mod state;
+mod auth;
+
 use axum::{
+
     Router,
     routing::{get, post}
 };
@@ -8,19 +18,12 @@ use tokio::sync::mpsc;
 use crate::db::connection::connect_db;
 use crate::state::AppState;
 use crate::services::ingestion::ingestion_worker;
-use crate::handlers::alerts;
+use crate::handlers::{alerts, auth_handler};
+use axum::middleware;
+use crate::auth::middleware::auth_middleware;
 use tower_http::cors::CorsLayer;
 
 
-
-mod handlers;
-mod rules;
-mod db;
-mod models;
-mod services;
-mod parsers;
-mod state;
-mod auth;
 
 #[tokio::main]
 async fn main() {
@@ -39,14 +42,41 @@ async fn main() {
         ingestion_worker(rx, db_pool).await;
     });
 
-    let app = Router::new()
-        .route("/logs", post(handlers::ingest::receive_log))
-        .route("/logs", get(handlers::logs::get_logs))
-        .route("/alerts", get(alerts::get_alerts))
-        .route("/register", post(auth::handlers::register))
-        .layer(cors)
-        .with_state(state);
+let app = Router::new()
 
+    .route(
+        "/logs",
+        post(handlers::ingest::receive_log)
+    )
+
+    .route(
+        "/logs",
+        get(handlers::logs::get_logs)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+
+    .route(
+        "/alerts",
+        get(alerts::get_alerts)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+
+    .route(
+        "/auth/register",
+        post(auth_handler::register)
+    )
+
+    .route(
+        "/auth/login",
+        post(auth_handler::login)
+    )
+
+    .layer(cors)
+    .with_state(state);
     let listener =
         tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await

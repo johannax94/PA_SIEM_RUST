@@ -45,3 +45,4 @@ pub async fn register(
 
     Json("user created".to_string())
 }
+
