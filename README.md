@@ -135,3 +135,5 @@ Mise en place d'un catalogue de détection (pour ranger les alertes en grandes c
 DANS LES LOGS préciser timestamp UTC etc. A FAIRE
 
 Implémenter une recharge automatique toutes les 5/15/60 min au choix - FAIT 
+
+Site de splunk, promotion, beau design, histoire de l'entreprise etc.
