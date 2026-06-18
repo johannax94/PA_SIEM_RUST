@@ -1,50 +1,81 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  NavLink,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import DashboardPage from "./pages/DashboardPage";
 import AlertsPage from "./pages/AlertsPage";
 import LogsPage from "./pages/LogsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Logo from "./components/Logo";
 
-function App() {
-  
-  function logout() {
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Dashboard",
+  "/alerts": "Alertes",
+  "/logs": "Logs",
+};
+
+function logout() {
   localStorage.removeItem("token");
   window.location.href = "/login";
 }
-  return (
-    <BrowserRouter>
-      <div style={{ display: "flex" }}>
-        
-        <div
-          style={{
-            width: "200px",
-            height: "100vh",
-            background: "#111",
-            color: "white",
-            padding: "20px",
-          }}
-        >
-          <h2>MedTech SIEM</h2>
-          <button onClick={logout}>
-            Logout
-          </button>
-          <nav>
-            <p>
-              <Link to="/" style={{ color: "white" }}>
-                Alertes
-              </Link>
-            </p>
 
-            <p>
-              <Link to="/logs" style={{ color: "white" }}>
-                Logs
-              </Link>
-            </p>
-          </nav>
+function Shell() {
+  const location = useLocation();
+
+  if (location.pathname === "/login") {
+    return <LoginPage />;
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <Logo />
         </div>
 
-        <div style={{ flex: 1, padding: "20px" }}>
+        <nav>
+          <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/alerts" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+            Alertes
+          </NavLink>
+          <NavLink to="/logs" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+            Logs
+          </NavLink>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button className="btn btn-ghost" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <div className="main">
+        <header className="topbar">
+          <h1>{PAGE_TITLES[location.pathname] ?? "Dashboard"}</h1>
+          <div className="live-indicator">
+            <span className="pulse-dot" />
+            Live · rafraîchissement auto 10 s
+          </div>
+        </header>
+
+        <div className="content">
           <Routes>
-            <Route path="/" element={<AlertsPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/alerts"
               element={
@@ -61,10 +92,20 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="*" element={<Shell />} />
+      </Routes>
     </BrowserRouter>
   );
 }

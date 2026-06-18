@@ -15,7 +15,10 @@ pub async fn check_failed_login_rule(
         FROM logs
         WHERE source_name = $1
         AND event_type = 'login_failed'
-        AND timestamp >= $2
+        -- ANCIEN (cassé) : AND timestamp >= $2
+        -- La table `logs` n'a pas de colonne `timestamp` (schéma réel : `created_at`).
+        -- L'ancienne requête faisait planter le worker d'ingestion au 1er login_failed.
+        AND created_at >= $2
         "#
     )
     .bind(source_name)

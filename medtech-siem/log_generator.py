@@ -5,6 +5,12 @@ import uuid
 
 URL = "http://127.0.0.1:3000/logs"
 
+# IMPORTANT : le backend (IncomingLog dans src/models/log.rs) attend EXACTEMENT
+# ces champs -> source_name, event_type, severity, message, raw_log.
+# ANCIENNE VERSION (cassée) : elle envoyait "level" (au lieu de "severity")
+# et "metadata" (au lieu de "raw_log"), ce qui faisait rejeter chaque log en 422
+# -> aucun log n'était ingéré.
+
 source_types = ["proxy", "system", "firewall"]
 
 def generate_log():
@@ -13,12 +19,12 @@ def generate_log():
 
     if source_type == "proxy":
         return {
-            "source_type": "proxy",
             "source_name": "proxy01",
-            "level": "info",
             "event_type": "http_request",
+            "severity": "info",          # anciennement "level"
             "message": "HTTP request",
-            "metadata": {
+            "raw_log": {                  # anciennement "metadata"
+                "source_type": "proxy",
                 "src_ip": f"10.0.0.{random.randint(1,50)}",
                 "url": random.choice([
                     "https://google.com",
@@ -28,19 +34,18 @@ def generate_log():
                 "status_code": random.choice([200, 403, 500])
             }
         }
-    
 
     elif source_type == "system":
         return {
-            "source_type": "system",
             "source_name": "server01",
-            "level": "warn",
             "event_type": random.choice([
                 "login_failed",
                 "login_success"
             ]),
+            "severity": "warning",        # anciennement "level": "warn"
             "message": "Auth event",
-            "metadata": {
+            "raw_log": {                  # anciennement "metadata"
+                "source_type": "system",
                 "user": random.choice(["admin", "root", "user"]),
                 "src_ip": f"10.0.0.{random.randint(1,50)}"
             }
@@ -48,12 +53,12 @@ def generate_log():
 
     else:
         return {
-            "source_type": "firewall",
             "source_name": "fw01",
-            "level": "warn",
             "event_type": "blocked_connection",
+            "severity": "warning",        # anciennement "level": "warn"
             "message": "Connection blocked",
-            "metadata": {
+            "raw_log": {                  # anciennement "metadata"
+                "source_type": "firewall",
                 "src_ip": f"10.0.0.{random.randint(1,50)}",
                 "dest_ip": "8.8.8.8",
                 "port": random.randint(20, 1024)
@@ -68,26 +73,26 @@ def send_logs(n):
 
         try:
             requests.post(URL, json=log)
-        except:
+        except Exception:
             pass
 
-        if i % 100 == 0:
+        if i % 50 == 0:
             print(f"{i} logs sent")
 
-if __name__ == "__main__":
-    send_logs(10000)
 
+if __name__ == "__main__":
+    # ANCIENNE VERSION : send_logs(10000) en bloquant PUIS 5 threads x 2000
+    # (le bloc threading était hors du if __name__ et s'exécutait même à l'import).
+    # Version raisonnable pour une démo : ~600 logs répartis sur 5 threads.
     import threading
 
-def worker():
-    send_logs(2000)
+    def worker():
+        send_logs(120)
 
-threads = []
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
-for _ in range(5):
-    t = threading.Thread(target=worker)
-    t.start()
-    threads.append(t)
-
-for t in threads:
-    t.join()
+    print("Terminé.")
