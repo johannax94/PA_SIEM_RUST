@@ -1,78 +1,75 @@
 import { useState } from "react";
-import Logo from "../components/Logo";
 
 export default function LoginPage() {
-  const [uid, setUid] = useState("");
+
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  async function handleLogin() {
 
-    try {
-      const response = await fetch("http://localhost:3000/auth/login", {
+    const response = await fetch(
+      "http://localhost:3000/auth/login",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username: uid, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("bad credentials");
+        body: JSON.stringify({
+          username,
+          password,
+        }),
       }
+    );
 
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-      window.location.href = "/";
-    } catch {
-      setError("Identifiants invalides ou serveur injoignable.");
-      setLoading(false);
-    }
+    const data = await response.json();
+
+    console.log(data);
+
+    localStorage.setItem(
+      "token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "role",
+      data.role
+    );
+
+    window.location.href = "/dashboard";
   }
 
   return (
-    <div className="login-bg">
-      <form className="login-card" onSubmit={handleLogin}>
-        <div className="login-logo">
-          <Logo size={48} />
-          <h1>MEDTECH</h1>
-        </div>
+    <div style={{ padding: 40 }}>
 
-        <div className="login-field">
-          <label>UID</label>
-          <input
-            placeholder="uid"
-            value={uid}
-            autoFocus
-            onChange={(e) => setUid(e.target.value)}
-          />
-        </div>
+      <h1>MedTech SIEM Login</h1>
 
-        <div className="login-field">
-          <label>Mot de passe</label>
-          <input
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+      <input
+        placeholder="username"
+        value={username}
+        onChange={(e) =>
+          setUsername(e.target.value)
+        }
+      />
 
-        {error && <p className="login-error">{error}</p>}
+      <br />
+      <br />
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ width: "100%", justifyContent: "center" }}
-          disabled={loading}
-        >
-          {loading ? "Connexion…" : "Se connecter"}
-        </button>
-      </form>
+      <input
+        type="password"
+        placeholder="password"
+        value={password}
+        onChange={(e) =>
+          setPassword(e.target.value)
+        }
+      />
+
+      <br />
+      <br />
+
+      <button onClick={handleLogin}>
+        Login
+      </button>
+
     </div>
   );
 }

@@ -1,98 +1,95 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchAlerts } from "../services/api";
-import SeverityBadge, { normalizeSeverity } from "../components/SeverityBadge";
 
 function AlertsPage() {
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("all");
 
-  const load = () => {
-    fetchAlerts().then((data) => setAlerts(Array.isArray(data) ? data : []));
-  };
+  const [alerts, setAlerts] =
+    useState<any[]>([]);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 10_000);
-    return () => clearInterval(interval);
+    fetchAlerts().then(setAlerts);
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return alerts.filter((alert) => {
-      if (severityFilter !== "all" && normalizeSeverity(alert.severity) !== severityFilter) {
-        return false;
-      }
-      if (!q) return true;
-      return [alert.rule_name, alert.description, alert.source_name]
-        .filter(Boolean)
-        .some((field: string) => field.toLowerCase().includes(q));
-    });
-  }, [alerts, search, severityFilter]);
-
   return (
-    <div>
-      <div className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Rechercher une règle, source, description…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="filter-select"
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-        >
-          <option value="all">Toutes sévérités</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-          <option value="info">Info</option>
-        </select>
-        <button className="btn" onClick={load}>
-          Actualiser
-        </button>
-      </div>
+    <div
+      style={{
+        padding: "30px",
+      }}
+    >
+      <h1>Alertes</h1>
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Règle</th>
-              <th>Sévérité</th>
-              <th>Source</th>
-              <th>Description</th>
-              <th>Horodatage</th>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+        }}
+      >
+        <thead>
+          <tr>
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Règle</th>
+            <th style={thStyle}>Sévérité</th>
+            <th style={thStyle}>Source</th>
+            <th style={thStyle}>Message</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {alerts.map((alert) => (
+            <tr key={alert.id}>
+              <td style={tdStyle}>
+                {new Date(
+                  alert.created_at
+                ).toLocaleString()}
+              </td>
+
+              <td style={tdStyle}>
+                {alert.rule_name}
+              </td>
+
+              <td style={tdStyle}>
+                <span
+                  style={{
+                    padding:
+                      "4px 10px",
+                    borderRadius:
+                      "999px",
+                    backgroundColor:
+                      alert.severity === "high"
+                        ? "#e60b0b"
+                        : alert.severity === "medium"
+                        ? "#fff0cc"
+                        : "#ddffdd",
+                  }}
+                >
+                  {alert.severity}
+                </span>
+              </td>
+
+              <td style={tdStyle}>
+                {alert.source_name}
+              </td>
+
+              <td style={tdStyle}>
+                {alert.message}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {filtered.map((alert) => (
-              <tr key={alert.id}>
-                <td className="cell-strong">{alert.rule_name}</td>
-                <td>
-                  <SeverityBadge severity={alert.severity} />
-                </td>
-                <td className="cell-mono">{alert.source_name ?? "—"}</td>
-                <td>{alert.description}</td>
-                <td className="cell-mono">{new Date(alert.timestamp).toLocaleString()}</td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={5}>
-                  <div className="empty-state">
-                    Aucune alerte ne correspond aux critères
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
+
+const thStyle = {
+  borderBottom: "2px solid #ddd",
+  padding: "12px",
+  textAlign: "left" as const,
+};
+
+const tdStyle = {
+  borderBottom: "1px solid #eee",
+  padding: "12px",
+};
 
 export default AlertsPage;

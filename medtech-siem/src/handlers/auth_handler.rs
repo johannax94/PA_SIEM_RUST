@@ -105,9 +105,11 @@ pub async fn login(
         panic!("invalid password");
     }
 
+    let role = user.role.clone();
+
     let claims = Claims {
         sub: user.username,
-        role: user.role,
+        role: role.clone(),
         exp: 2000000000,
     };
 
@@ -122,5 +124,6 @@ pub async fn login(
 
     Json(AuthResponse {
         token,
+        role,
     })
 }

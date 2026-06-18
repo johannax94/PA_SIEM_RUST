@@ -14,10 +14,10 @@ use jsonwebtoken::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct Claims {
-    sub: String,
-    role: String,
-    exp: usize,
+pub struct Claims {
+    pub sub: String,
+    pub role: String,
+    pub exp: usize,
 }
 
 pub async fn auth_middleware(
