@@ -10,7 +10,7 @@ mod auth;
 use axum::{
 
     Router,
-    routing::{get, post}
+    routing::{get, post, delete, put}
 };
 
 use tokio::sync::mpsc;
@@ -74,8 +74,39 @@ let app = Router::new()
         "/auth/login",
         post(auth_handler::login)
     )
-
-    .layer(cors)
+    .route(
+        "/dashboard",
+        get(handlers::dashboard::get_dashboard)
+    )
+    .route(
+        "/users",
+        get(handlers::users::get_users)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/users/:username",
+        delete(handlers::users::delete_user)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/users/:username/role",
+        put(handlers::users::update_role)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/users",
+        post(handlers::users::create_user)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+        .layer(cors)
     .with_state(state);
     let listener =
         tokio::net::TcpListener::bind("0.0.0.0:3000")

@@ -4,20 +4,26 @@ use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]
 pub struct Alert {
-    pub id: String,
+    pub id: uuid::Uuid,
     pub rule_name: String,
     pub severity: String,
     pub source_name: String,
+    pub message: String,
     pub created_at: chrono::NaiveDateTime,
 }
-
 pub async fn get_alerts(
     State(state): State<AppState>,
 ) -> Json<Vec<Alert>> {
 
     let alerts = sqlx::query_as::<_, Alert>(
         r#"
-        SELECT id, rule_name, severity, source_name, created_at
+        SELECT
+            id,
+            rule_name,
+            severity,
+            source_name,
+            message,
+            created_at
         FROM alerts
         ORDER BY created_at DESC
         LIMIT 50

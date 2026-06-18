@@ -3,9 +3,12 @@ import AlertsPage from "./pages/AlertsPage";
 import LogsPage from "./pages/LogsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardPage from "./pages/DashboardPage";
+import UsersPage from "./pages/UsersPage";
 
 function App() {
-  
+  const role =
+  localStorage.getItem("role");
   function logout() {
   localStorage.removeItem("token");
   window.location.href = "/login";
@@ -33,8 +36,25 @@ function App() {
                 Alertes
               </Link>
             </p>
-
+              {role === "admin" && (
+                  <p>
+                    <Link
+                      to="/users"
+                      style={{ color: "white" }}
+                    >
+                      Users
+                    </Link>
+                  </p>
+                )}
             <p>
+              <Link
+                to="/dashboard"
+                style={{ color: "white" }}
+              >
+                Dashboard
+              </Link>
+            </p>
+                        <p>
               <Link to="/logs" style={{ color: "white" }}>
                 Logs
               </Link>
@@ -58,6 +78,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LogsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UsersPage />
                 </ProtectedRoute>
               }
             />

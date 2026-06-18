@@ -113,3 +113,25 @@ Rule engine (moteur SIEM )
 Alerts DB
 
 SIEM final : comment l'incorporer dans une architecture d'entreprise ? 
+
+Premier user : admin -> peut créer d'autres users, connecte le SIEM à son infra etc.
+Quelles mesures de sécurité ont été prises pour notre SIEM (implémentation, langages choisis etc.)
+
+Interdire la suppression du dernier admin
+
+ne pas déployer, créer package à installer après paiement licence 
+
+
+Changer le lien de localhost:5173/ A FAIRE 
+
+Créer archi virtualisée pour intégrer notre SIEM à un cas réel. 
+Créer un paquet python pr installer notre SIEM
+Quel sera le prix de la licence de notre SIEM  ? 
+
+Mise en place d'un catalogue de détection (pour ranger les alertes en grandes catégories)
+
+
+
+DANS LES LOGS préciser timestamp UTC etc. A FAIRE
+
+Implémenter une recharge automatique toutes les 5/15/60 min au choix - FAIT 

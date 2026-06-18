@@ -5,6 +5,12 @@ use chrono::NaiveDateTime;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IncomingLog {
     pub source_name: String,
+
+    pub vendor: Option<String>,
+    pub hostname: Option<String>,
+    pub username: Option<String>,
+    pub ip_address: Option<String>,
+
     pub event_type: String,
     pub severity: String,
     pub message: String,
@@ -14,7 +20,14 @@ pub struct IncomingLog {
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct LogEntry {
     pub id: uuid::Uuid,
+
     pub source_name: String,
+
+    pub vendor: Option<String>,
+    pub hostname: Option<String>,
+    pub username: Option<String>,
+    pub ip_address: Option<String>,
+
     pub event_type: String,
     pub severity: String,
     pub message: String,

@@ -1,0 +1,12 @@
+1 -Présenter la logique d'implémentation des règles (factorisation pour n'avoir qu'à écrire la logique métier et appeler les différentes fonctions génériques)
+2 - Envoie en direct d'un flot de logs pour observer le comportement du SIEM
+3- chargement automatique toutes les 5 min
+4 - Expliquer 5 règles (les plus pertinentes)
+5 - expliquer des types d'attaques pouvant être détéctées par ces 5 règles 
+6 - Présenter EN GROS toutes les foncitonnalités (pas passer 5 ans dessus car c la base d'avoir un compte admin par ex on sen tape)
+pr rappel foncitonnalotés : admin CRUD (create update delete)
+                            barre de recherche intelligente (elle recherche sur toutes les colonnes)
+                            règles qui déclenchent des alertes
+                            dashboard pr vision macorscopique de l'état du SIEM
+                            logs avec vision claire et parsing clair
+                            

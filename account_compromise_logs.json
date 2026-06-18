@@ -1,0 +1,68 @@
+[
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_failed",
+    "severity": "medium",
+    "message": "Bad password",
+    "raw_log": {}
+  },
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_failed",
+    "severity": "medium",
+    "message": "Bad password",
+    "raw_log": {}
+  },
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_failed",
+    "severity": "medium",
+    "message": "Bad password",
+    "raw_log": {}
+  },
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_failed",
+    "severity": "medium",
+    "message": "Bad password",
+    "raw_log": {}
+  },
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_failed",
+    "severity": "medium",
+    "message": "Bad password",
+    "raw_log": {}
+  },
+  {
+    "source_name": "DC01",
+    "vendor": "Microsoft",
+    "hostname": "DC01",
+    "username": "alice",
+    "ip_address": "10.0.0.25",
+    "event_type": "login_success",
+    "severity": "low",
+    "message": "User authenticated",
+    "raw_log": {}
+  }
+]

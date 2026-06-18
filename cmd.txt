@@ -16,3 +16,12 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3000/logs" -ContentType "a
 npm run dev
 
 \d logs
+
+localStorage.getItem("token")
+
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:3000/users/admin" `
+  -Method DELETE `
+  -Headers @{
+      Authorization = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImV4cCI6MjAwMDAwMDAwMH0.Y2XdQJq_SgzkYKjKcOT1gzaK36zL--R9h17KWR0_-_0"
+  }
