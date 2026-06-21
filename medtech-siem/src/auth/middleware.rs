@@ -37,14 +37,18 @@ pub async fn auth_middleware(
         _ => return Err(StatusCode::UNAUTHORIZED),
     };
 
+    let jwt_secret =
+        std::env::var("JWT_SECRET")
+            .expect("JWT_SECRET missing");
+
     let token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(
-            "super-secret-key".as_ref()
+            jwt_secret.as_bytes()
         ),
         &Validation::default(),
     )
-    .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    .unwrap();
 
     req.extensions_mut()
         .insert(token_data.claims);

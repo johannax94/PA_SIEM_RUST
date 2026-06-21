@@ -7,6 +7,8 @@ mod parsers;
 mod state;
 mod auth;
 
+
+
 use axum::{
 
     Router,
@@ -28,6 +30,8 @@ use tower_http::cors::CorsLayer;
 #[tokio::main]
 async fn main() {
 
+
+    dotenvy::dotenv().ok();
     let (tx, rx) = mpsc::channel(10000);
     let cors = CorsLayer::permissive();
 
@@ -108,10 +112,21 @@ let app = Router::new()
     )
         .layer(cors)
     .with_state(state);
+
+
+    let port = std::env::var("PORT")
+    .unwrap_or_else(|_| "3000".to_string());
+
+    let address = format!("0.0.0.0:{}", port);
+
+    println!(" MedTech SIEM listening on {}", address);
+
     let listener =
-        tokio::net::TcpListener::bind("0.0.0.0:3000")
+        tokio::net::TcpListener::bind(&address)
         .await
         .unwrap();
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .await
+        .unwrap();
 }

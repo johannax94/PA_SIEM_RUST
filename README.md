@@ -135,3 +135,11 @@ Mise en place d'un catalogue de détection (pour ranger les alertes en grandes c
 DANS LES LOGS préciser timestamp UTC etc. A FAIRE
 
 Implémenter une recharge automatique toutes les 5/15/60 min au choix - FAIT 
+
+une vraie Landing Page moderne (style Datadog / CrowdStrike / Splunk),
+une section "Features",
+une section "Architecture",
+une section "Screenshots",
+une page "About",
+une page "Contact",
+un pied de page professionnel.
