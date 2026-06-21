@@ -23,7 +23,8 @@ use crate::services::ingestion::ingestion_worker;
 use crate::handlers::{alerts, auth_handler};
 use axum::middleware;
 use crate::auth::middleware::auth_middleware;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{CorsLayer, Any};
+use axum::http::{HeaderValue, Method};
 
 
 
@@ -32,8 +33,22 @@ async fn main() {
 
 
     dotenvy::dotenv().ok();
+    tracing_subscriber::fmt::init();
     let (tx, rx) = mpsc::channel(10000);
-    let cors = CorsLayer::permissive();
+    let cors = CorsLayer::new()
+    .allow_origin(
+        "https://www.medtech-security.tech"
+            .parse::<HeaderValue>()
+            .unwrap(),
+    )
+    .allow_methods([
+        Method::GET,
+        Method::POST,
+        Method::PUT,
+        Method::DELETE,
+    ])
+    .allow_headers(Any);
+    
 
     let db_pool = connect_db().await;
 
