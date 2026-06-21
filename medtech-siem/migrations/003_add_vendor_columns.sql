@@ -1,0 +1,11 @@
+ALTER TABLE logs
+ADD COLUMN vendor TEXT;
+
+ALTER TABLE logs
+ADD COLUMN hostname TEXT;
+
+ALTER TABLE logs
+ADD COLUMN username TEXT;
+
+ALTER TABLE logs
+ADD COLUMN ip_address TEXT;
