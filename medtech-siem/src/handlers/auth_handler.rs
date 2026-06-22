@@ -113,11 +113,15 @@ pub async fn login(
         exp: 2000000000,
     };
 
+    let jwt_secret =
+        std::env::var("JWT_SECRET")
+            .expect("JWT_SECRET missing");
+
     let token = encode(
         &Header::default(),
         &claims,
         &EncodingKey::from_secret(
-            "super-secret-key".as_ref()
+            jwt_secret.as_bytes()
         ),
     )
     .unwrap();
