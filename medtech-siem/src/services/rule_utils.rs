@@ -104,3 +104,27 @@ pub async fn count_events_by_username(
 
     result.0
 }
+
+pub async fn count_distinct_countries_by_username(
+    db: &PgPool,
+    username: &str,
+    since: NaiveDateTime,
+) -> i64 {
+
+    let result: (i64,) = sqlx::query_as(
+        r#"
+        SELECT COUNT(DISTINCT raw_log->>'country')
+        FROM logs
+        WHERE username = $1
+        AND created_at >= $2
+        AND raw_log->>'country' IS NOT NULL
+        "#
+    )
+    .bind(username)
+    .bind(since)
+    .fetch_one(db)
+    .await
+    .unwrap();
+
+    result.0
+}

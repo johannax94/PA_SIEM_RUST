@@ -1,402 +1,148 @@
 import { useEffect, useState } from "react";
-import {
-  fetchUsers,
-  createUser,
-  deleteUser,
-  updateUserRole,
-} from "../services/api";
+import { fetchUsers, createUser, deleteUser, updateUserRole } from "../services/api";
+
+const ROLES = ["admin", "analyst", "viewer"];
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("analyst");
+  const [message, setMessage] = useState("");
 
-  const [users, setUsers] =
-    useState<any[]>([]);
-
-  const [username, setUsername] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [newUserRole, setNewUserRole] =
-    useState("analyst");
-
-  const [message, setMessage] =
-    useState("");
-
-  const currentUserRole =
-    localStorage.getItem("role");
-
-  if (currentUserRole !== "admin") {
-    return (
-      <div
-        style={{
-          background: "#0f172a",
-          minHeight: "100vh",
-          color: "white",
-          padding: "40px",
-        }}
-      >
-        <h1>403 - Access Denied</h1>
-        <p>
-          Cette page est réservée aux administrateurs.
-        </p>
-      </div>
-    );
-  }
+  const currentUserRole = localStorage.getItem("role");
 
   useEffect(() => {
-    loadUsers();
+    if (currentUserRole === "admin") {
+      loadUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadUsers() {
-    const data = await fetchUsers();
-    setUsers(data);
+    try {
+      const data = await fetchUsers();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setMessage("Erreur lors du chargement des utilisateurs.");
+    }
   }
 
   async function handleCreateUser() {
-
-    const result =
-      await createUser(
-        username,
-        password,
-        newUserRole
-      );
-
-    setMessage(result);
-
+    if (!username || !password) return;
+    const result = await createUser(username, password, newUserRole);
+    setMessage(typeof result === "string" ? result : "Utilisateur créé.");
     await loadUsers();
-
     setUsername("");
     setPassword("");
     setNewUserRole("analyst");
   }
 
-  async function handleDelete(
-    username: string
-  ) {
-
-    if (
-      !window.confirm(
-        `Supprimer ${username} ?`
-      )
-    ) {
-      return;
-    }
-
-    const result =
-      await deleteUser(username);
-
-    setMessage(result);
-
+  async function handleDelete(name: string) {
+    if (!window.confirm(`Supprimer ${name} ?`)) return;
+    const result = await deleteUser(name);
+    setMessage(typeof result === "string" ? result : "Utilisateur supprimé.");
     await loadUsers();
   }
 
-  async function handleRoleChange(
-    username: string
-  ) {
-
-    const role = prompt(
-      "Nouveau rôle : admin / analyst / viewer"
-    );
-
-    if (!role) return;
-
-    const result =
-      await updateUserRole(
-        username,
-        role
-      );
-
-    setMessage(result);
-
+  async function handleRoleChange(name: string) {
+    const role = window.prompt("Nouveau rôle : admin / analyst / viewer");
+    if (!role || !ROLES.includes(role)) return;
+    const result = await updateUserRole(name, role);
+    setMessage(typeof result === "string" ? result : "Rôle mis à jour.");
     await loadUsers();
   }
 
-  function getRoleBadge(role: string) {
-
-    let background = "#374151";
-
-    if (role === "admin") {
-      background = "#991b1b";
-    }
-
-    if (role === "analyst") {
-      background = "#1d4ed8";
-    }
-
-    if (role === "viewer") {
-      background = "#065f46";
-    }
-
+  if (currentUserRole !== "admin") {
     return (
-      <span
-        style={{
-          background,
-          color: "white",
-          padding: "4px 12px",
-          borderRadius: "999px",
-          fontSize: "12px",
-          fontWeight: "bold",
-          textTransform: "uppercase",
-        }}
-      >
-        {role}
-      </span>
+      <div className="empty-state">
+        <div style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>
+          403 — Accès refusé
+        </div>
+        Cette page est réservée aux administrateurs.
+      </div>
     );
   }
 
   return (
-    <div
-      style={{
-        background: "#0f172a",
-        minHeight: "100vh",
-        color: "white",
-        padding: "30px",
-      }}
-    >
+    <div>
+      {message && <div className="banner">{message}</div>}
 
-      <h1
-        style={{
-          marginBottom: "25px",
-          fontSize: "32px",
-        }}
-      >
-        👥 User Management
-      </h1>
-
-      {message && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px",
-            borderRadius: "8px",
-            background:
-              message.includes("created") ||
-              message.includes("updated") ||
-              message.includes("deleted")
-                ? "#14532d"
-                : "#7f1d1d",
-          }}
-        >
-          {message}
-        </div>
-      )}
-
-      {/* CREATE USER CARD */}
-
-      <div
-        style={{
-          background: "#111827",
-          border: "1px solid #1f2937",
-          borderRadius: "12px",
-          padding: "24px",
-          marginBottom: "30px",
-        }}
-      >
-        <h3
-          style={{
-            marginBottom: "20px",
-          }}
-        >
-          Create User
-        </h3>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
+      <div className="panel" style={{ marginBottom: 20 }}>
+        <h3 className="panel-title">Créer un utilisateur</h3>
+        <div className="toolbar" style={{ marginBottom: 0 }}>
           <input
-            placeholder="Username"
+            className="search-input"
+            placeholder="Nom d'utilisateur"
             value={username}
-            onChange={(e) =>
-              setUsername(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setUsername(e.target.value)}
           />
-
           <input
+            className="search-input"
             type="password"
-            placeholder="Password"
+            placeholder="Mot de passe"
             value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setPassword(e.target.value)}
           />
-
           <select
+            className="filter-select"
             value={newUserRole}
-            onChange={(e) =>
-              setNewUserRole(
-                e.target.value
-              )
-            }
-            style={inputStyle}
+            onChange={(e) => setNewUserRole(e.target.value)}
           >
-            <option value="admin">
-              Admin
-            </option>
-
-            <option value="analyst">
-              Analyst
-            </option>
-
-            <option value="viewer">
-              Viewer
-            </option>
+            <option value="admin">Admin</option>
+            <option value="analyst">Analyst</option>
+            <option value="viewer">Viewer</option>
           </select>
-
-          <button
-            onClick={handleCreateUser}
-            style={createButton}
-          >
-            + Create
+          <button className="btn btn-primary" onClick={handleCreateUser}>
+            + Créer
           </button>
         </div>
       </div>
 
-      {/* USERS TABLE */}
-
-      <div
-        style={{
-          background: "#111827",
-          border: "1px solid #1f2937",
-          borderRadius: "12px",
-          overflow: "hidden",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-          }}
-        >
-
+      <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr
-              style={{
-                background: "#0b1220",
-              }}
-            >
-              <th style={thStyle}>
-                Username
-              </th>
-
-              <th style={thStyle}>
-                Role
-              </th>
-
-              <th style={thStyle}>
-                Actions
-              </th>
+            <tr>
+              <th>Utilisateur</th>
+              <th>Rôle</th>
+              <th style={{ width: 200 }}>Actions</th>
             </tr>
           </thead>
-
           <tbody>
-
             {users.map((user) => (
-
-              <tr
-                key={user.username}
-                style={{
-                  borderBottom:
-                    "1px solid #1f2937",
-                }}
-              >
-
-                <td style={tdStyle}>
-                  {user.username}
+              <tr key={user.username}>
+                <td className="cell-strong cell-mono">{user.username}</td>
+                <td>
+                  <span className={`role-badge ${user.role}`}>{user.role}</span>
                 </td>
-
-                <td style={tdStyle}>
-                  {getRoleBadge(user.role)}
-                </td>
-
-                <td style={tdStyle}>
-
+                <td>
                   <button
-                    style={editButton}
-                    onClick={() =>
-                      handleRoleChange(
-                        user.username
-                      )
-                    }
+                    className="btn"
+                    style={{ padding: "6px 12px", marginRight: 8 }}
+                    onClick={() => handleRoleChange(user.username)}
                   >
-                    Edit
+                    Modifier rôle
                   </button>
-
                   <button
-                    style={deleteButton}
-                    onClick={() =>
-                      handleDelete(
-                        user.username
-                      )
-                    }
+                    className="btn btn-ghost"
+                    style={{ width: "auto", padding: "6px 12px" }}
+                    onClick={() => handleDelete(user.username)}
                   >
-                    Delete
+                    Supprimer
                   </button>
-
                 </td>
-
               </tr>
-
             ))}
-
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={3}>
+                  <div className="empty-state">Aucun utilisateur</div>
+                </td>
+              </tr>
+            )}
           </tbody>
-
         </table>
       </div>
-
     </div>
   );
 }
-
-const inputStyle = {
-  background: "#1f2937",
-  border: "1px solid #374151",
-  color: "white",
-  padding: "10px",
-  borderRadius: "8px",
-};
-
-const thStyle = {
-  textAlign: "left" as const,
-  padding: "16px",
-  color: "#cbd5e1",
-};
-
-const tdStyle = {
-  padding: "16px",
-};
-
-const createButton = {
-  background: "#06b6d4",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "10px 18px",
-  cursor: "pointer",
-  fontWeight: "bold",
-};
-
-const editButton = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 12px",
-  cursor: "pointer",
-  marginRight: "8px",
-};
-
-const deleteButton = {
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 12px",
-  cursor: "pointer",
-};
