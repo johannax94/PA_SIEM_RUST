@@ -54,6 +54,7 @@ export async function deleteUser(
     localStorage.getItem("token");
 
   const response = await fetch(
+    // ANCIEN: `http://localhost:3000/users/${username}` — URL en dur (cassait la prod)
     `${API_URL}/users/${username}`,
     {
       method: "DELETE",
@@ -75,6 +76,7 @@ export async function updateUserRole(
     localStorage.getItem("token");
 
   const response = await fetch(
+    // ANCIEN: `http://localhost:3000/users/${username}/role` — URL en dur (cassait la prod)
     `${API_URL}/users/${username}/role`,
     {
       method: "PUT",

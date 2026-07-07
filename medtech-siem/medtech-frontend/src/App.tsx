@@ -1,212 +1,142 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
-
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  NavLink,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
-import LogsPage from "./pages/LogsPage";
 import AlertsPage from "./pages/AlertsPage";
+import LogsPage from "./pages/LogsPage";
+import LoginPage from "./pages/LoginPage";
 import UsersPage from "./pages/UsersPage";
-
+import LandingPage from "./pages/LandingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Logo from "./components/Logo";
 
-function Sidebar() {
-
-  const role = localStorage.getItem("role");
-
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    window.location.href = "/";
-  }
-
-  return (
-    <div
-      style={{
-        width: 220,
-        height: "100vh",
-        background: "#111827",
-        color: "white",
-        padding: 20,
-        boxSizing: "border-box",
-      }}
-    >
-      <h2
-        style={{
-          marginBottom: 30,
-        }}
-      >
-        MedTech SIEM
-      </h2>
-
-      <nav>
-
-        <p>
-          <Link
-            to="/dashboard"
-            style={linkStyle}
-          >
-            Dashboard
-          </Link>
-        </p>
-
-        <p>
-          <Link
-            to="/logs"
-            style={linkStyle}
-          >
-            Logs
-          </Link>
-        </p>
-
-        <p>
-          <Link
-            to="/alerts"
-            style={linkStyle}
-          >
-            Alertes
-          </Link>
-        </p>
-
-        {role === "admin" && (
-
-          <p>
-            <Link
-              to="/users"
-              style={linkStyle}
-            >
-              Utilisateurs
-            </Link>
-          </p>
-
-        )}
-
-      </nav>
-
-      <button
-        onClick={logout}
-        style={{
-          marginTop: 40,
-          width: "100%",
-          padding: 12,
-          background: "#dc2626",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          cursor: "pointer",
-          fontWeight: "bold",
-        }}
-      >
-        Logout
-      </button>
-
-    </div>
-  );
-}
-
-function AppContent() {
-
-  const location = useLocation();
-
-  const showSidebar =
-    location.pathname.startsWith("/dashboard") ||
-    location.pathname.startsWith("/logs") ||
-    location.pathname.startsWith("/alerts") ||
-    location.pathname.startsWith("/users");
-
-  return (
-
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-      }}
-    >
-
-      {showSidebar && <Sidebar />}
-
-      <div
-        style={{
-          flex: 1,
-        }}
-      >
-
-        <Routes>
-
-          {/* -------- Site public -------- */}
-
-          <Route
-            path="/"
-            element={<LandingPage />}
-          />
-
-          <Route
-            path="/login"
-            element={<LoginPage />}
-          />
-
-          {/* -------- Console -------- */}
-
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/logs"
-            element={
-              <ProtectedRoute>
-                <LogsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/alerts"
-            element={
-              <ProtectedRoute>
-                <AlertsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute>
-                <UsersPage />
-              </ProtectedRoute>
-            }
-          />
-
-        </Routes>
-
-      </div>
-
-    </div>
-
-  );
-
-}
-
-const linkStyle = {
-  color: "white",
-  textDecoration: "none",
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/alerts": "Alertes",
+  "/logs": "Logs",
+  "/users": "Gestion des utilisateurs",
 };
 
-export default function App() {
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  window.location.href = "/login";
+}
+
+function Shell() {
+  const location = useLocation();
+  const role = localStorage.getItem("role");
+
+  if (location.pathname === "/") {
+    return <LandingPage />;
+  }
+
+  if (location.pathname === "/login") {
+    return <LoginPage />;
+  }
+
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    `nav-link${isActive ? " active" : ""}`;
 
   return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <Logo />
+          <div>
+            MEDTECH
+            <span className="logo-sub">SIEM</span>
+          </div>
+        </div>
 
-    <BrowserRouter>
+        <nav>
+          <NavLink to="/dashboard" className={navClass}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/alerts" className={navClass}>
+            Alertes
+          </NavLink>
+          <NavLink to="/logs" className={navClass}>
+            Logs
+          </NavLink>
+          {role === "admin" && (
+            <NavLink to="/users" className={navClass}>
+              Utilisateurs
+            </NavLink>
+          )}
+        </nav>
 
-      <AppContent />
+        <div className="sidebar-footer">
+          <button className="btn btn-ghost" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </aside>
 
-    </BrowserRouter>
+      <div className="main">
+        <header className="topbar">
+          <h1>{PAGE_TITLES[location.pathname] ?? "Dashboard"}</h1>
+          <div className="live-indicator">
+            <span className="pulse-dot" />
+            Live
+          </div>
+        </header>
 
+        <div className="content">
+          <Routes>
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/alerts"
+              element={
+                <ProtectedRoute>
+                  <AlertsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <ProtectedRoute>
+                  <LogsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
   );
-
 }
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="*" element={<Shell />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;

@@ -1,435 +1,145 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { fetchLogs } from "../services/api";
+import SeverityBadge from "../components/SeverityBadge";
+
+const REFRESH_OPTIONS = [
+  { value: "0", label: "Auto-refresh OFF" },
+  { value: "10000", label: "10 secondes" },
+  { value: "60000", label: "1 minute" },
+  { value: "300000", label: "5 minutes" },
+  { value: "600000", label: "10 minutes" },
+];
 
 export default function LogsPage() {
-
-  const [logs, setLogs] =
-    useState<any[]>([]);
-
-  const [selectedLog, setSelectedLog] =
-    useState<any | null>(null);
-
-  const [search, setSearch] =
-    useState("");
-
-  const [severity, setSeverity] =
-    useState("");
-
-  const [refreshInterval, setRefreshInterval] =
-    useState("0");
-
-  const [lastRefresh, setLastRefresh] =
-    useState(new Date());
+  const [logs, setLogs] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [refreshInterval, setRefreshInterval] = useState("0");
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   async function loadLogs() {
-
     try {
-
-      const data = await fetchLogs(
-        search,
-        severity
-      );
-
-      setLogs(data);
-
-      // Met à jour l'heure du dernier rafraîchissement
+      const data = await fetchLogs(search, severity);
+      setLogs(Array.isArray(data) ? data : []);
       setLastRefresh(new Date());
-
     } catch (err) {
-
       console.error(err);
-
     }
   }
 
   useEffect(() => {
-
     loadLogs();
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-
-    if (refreshInterval === "0") {
-      return;
-    }
-
-    const interval = setInterval(() => {
-
-      loadLogs();
-
-    }, Number(refreshInterval));
-
+    if (refreshInterval === "0") return;
+    const interval = setInterval(loadLogs, Number(refreshInterval));
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshInterval, search, severity]);
 
-  }, [
-    refreshInterval,
-    search,
-    severity,
-  ]);
-
-
-  function severityColor(severity: string) {
-    switch (severity?.toLowerCase()) {
-      case "critical":
-        return "#ff1744";
-
-      case "high":
-        return "#ff9800";
-
-      case "medium":
-        return "#ffd54f";
-
-      case "low":
-        return "#4caf50";
-
-      default:
-        return "#90a4ae";
-    }
-  }
-
-  function vendorColor(vendor: string) {
-    switch (vendor?.toLowerCase()) {
-      case "windows":
-        return "#1976d2";
-
-      case "fortinet":
-        return "#d32f2f";
-
-      case "cisco":
-        return "#00acc1";
-
-      case "linux":
-        return "#fbc02d";
-
-      case "vmware":
-        return "#8e24aa";
-
-      default:
-        return "#546e7a";
-    }
-  }
+  const autoOn = refreshInterval !== "0";
 
   return (
-    <div
-      style={{
-        background: "#0f172a",
-        minHeight: "100vh",
-        color: "white",
-        padding: 30,
-      }}
-    >
-      <h1 style={{ marginBottom: 25 }}>
-        📄 Logs
-      </h1>
-              <p
-          style={{
-            color: "#94a3b8",
-            marginTop: -10,
-            marginBottom: 20,
-            fontSize: 14,
-          }}
-        >
-          Dernière mise à jour :
-          {" "}
-          {lastRefresh.toLocaleTimeString()}
-        </p>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 15,
-          marginBottom: 25,
-        }}
-      >
+    <div>
+      <div className="toolbar">
         <input
-          placeholder="Recherche (message, utilisateur, IP, vendor...)"
+          className="search-input"
+          placeholder="Rechercher (message, utilisateur, IP, vendor, source…)"
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 8,
-            border: "1px solid #334155",
-            background: "#1e293b",
-            color: "white",
-          }}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && loadLogs()}
         />
-
         <select
+          className="filter-select"
           value={severity}
-          onChange={(e) =>
-            setSeverity(e.target.value)
-          }
-          style={{
-            padding: 12,
-            borderRadius: 8,
-            background: "#1e293b",
-            color: "white",
-            border: "1px solid #334155",
-          }}
+          onChange={(e) => setSeverity(e.target.value)}
         >
-          <option value="">
-            Toutes
-          </option>
-
-          <option value="low">
-            Low
-          </option>
-
-          <option value="medium">
-            Medium
-          </option>
-
-          <option value="high">
-            High
-          </option>
-
-          <option value="critical">
-            Critical
-          </option>
+          <option value="">Toutes sévérités</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
         </select>
-            
-      <button
-        onClick={loadLogs}
-        style={{
-          padding: "12px 22px",
-          border: "none",
-          borderRadius: 8,
-          background: "#2563eb",
-          color: "white",
-          cursor: "pointer",
-          fontWeight: "bold",
-        }}
-      >
-        🔍 Rechercher
-      </button>
-            <select
-        value={refreshInterval}
-        onChange={(e) =>
-          setRefreshInterval(e.target.value)
-        }
-        style={{
-          padding: 12,
-          borderRadius: 8,
-          background: "#1e293b",
-          color: "white",
-          border: "1px solid #334155",
-          minWidth: 180,
-        }}
-      >
-        <option value="0">
-          Auto-refresh OFF
-        </option>
-
-        <option value="60000">
-          1 minute
-        </option>
-
-        <option value="300000">
-          5 minutes
-        </option>
-
-        <option value="600000">
-          10 minutes
-        </option>
-
-        <option value="3600000">
-          60 minutes
-        </option>
-      </select>
-
-
-      <div
-        style={{
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            background:
-              refreshInterval === "0"
-                ? "#ef4444"
-                : "#22c55e",
-          }}
-        />
-
-        <span
-          style={{
-            color: "#cbd5e1",
-            fontWeight: 600,
-            fontSize: 14,
-          }}
+        <button className="btn btn-primary" onClick={loadLogs}>
+          Rechercher
+        </button>
+        <select
+          className="filter-select"
+          value={refreshInterval}
+          onChange={(e) => setRefreshInterval(e.target.value)}
         >
-          {refreshInterval === "0"
-            ? "Auto-refresh OFF"
-            : `Auto-refresh ${Number(refreshInterval) / 1000}s`}
-        </span>
+          {REFRESH_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="refresh-status">
+          <span className={`status-dot${autoOn ? " on" : ""}`} />
+          {autoOn ? `Auto ${Number(refreshInterval) / 1000}s` : "Manuel"}
+          {lastRefresh && (
+            <span className="refresh-time">· {lastRefresh.toLocaleTimeString()}</span>
+          )}
+        </div>
       </div>
 
-      </div>
-
-      <div
-        style={{
-          background: "#111827",
-          borderRadius: 12,
-          overflow: "hidden",
-          border: "1px solid #334155",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-          }}
-        >
-          <thead
-            style={{
-              background: "#1e293b",
-            }}
-          >
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
             <tr>
-              <th style={th}>Date</th>
-              <th style={th}>Vendor</th>
-              <th style={th}>Host</th>
-              <th style={th}>Utilisateur</th>
-              <th style={th}>IP</th>
-              <th style={th}>Source</th>
-              <th style={th}>Evènement</th>
-              <th style={th}>Severity</th>
-              <th style={th}>Message</th>
+              <th style={{ width: 160 }}>Horodatage</th>
+              <th>Vendor</th>
+              <th>Host</th>
+              <th>Utilisateur</th>
+              <th>IP</th>
+              <th>Source</th>
+              <th>Événement</th>
+              <th>Sévérité</th>
+              <th>Message</th>
             </tr>
           </thead>
-
           <tbody>
             {logs.map((log) => (
-              <tr
-                key={log.id}
-                onClick={() =>
-                  setSelectedLog(log)
-                }
-                style={{
-                  cursor: "pointer",
-                  borderBottom:
-                    "1px solid #1e293b",
-                }}
-              >
-                <td style={td}>
-                  {new Date(
-                    log.created_at
-                  ).toLocaleString()}
-                </td>
-
-                <td style={td}>
-                  <span
-                    style={{
-                      background:
-                        vendorColor(
-                          log.vendor
-                        ),
-                      padding:
-                        "4px 10px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                    }}
-                  >
-                    {log.vendor ?? "-"}
-                  </span>
-                </td>
-
-                <td style={td}>
-                  {log.hostname ?? "-"}
-                </td>
-
-                <td style={td}>
-                  {log.username ?? "-"}
-                </td>
-
-                <td style={td}>
-                  {log.ip_address ?? "-"}
-                </td>
-
-                <td style={td}>
-                  {log.source_name}
-                </td>
-
-                <td style={td}>
-                  {log.event_type}
-                </td>
-
-                <td style={td}>
-                  <span
-                    style={{
-                      background:
-                        severityColor(
-                          log.severity
-                        ),
-                      color: "black",
-                      padding:
-                        "4px 10px",
-                      borderRadius: 20,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {log.severity}
-                  </span>
-                </td>
-
-                <td style={td}>
-                  {log.message}
+              <Fragment key={log.id}>
+                <tr
+                  className="expandable"
+                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                >
+                  <td className="cell-mono">{new Date(log.created_at).toLocaleString()}</td>
+                  <td>{log.vendor ? <span className="tag">{log.vendor}</span> : "—"}</td>
+                  <td className="cell-mono">{log.hostname ?? "—"}</td>
+                  <td className="cell-mono">{log.username ?? "—"}</td>
+                  <td className="cell-mono">{log.ip_address ?? "—"}</td>
+                  <td className="cell-strong cell-mono">{log.source_name}</td>
+                  <td className="cell-mono">{log.event_type}</td>
+                  <td>
+                    <SeverityBadge severity={log.severity} />
+                  </td>
+                  <td>{log.message}</td>
+                </tr>
+                {expandedId === log.id && (
+                  <tr>
+                    <td colSpan={9}>
+                      <div className="raw-log">{JSON.stringify(log.raw_log ?? log, null, 2)}</div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+            {logs.length === 0 && (
+              <tr>
+                <td colSpan={9}>
+                  <div className="empty-state">Aucun log ne correspond aux critères</div>
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
-
-      {selectedLog && (
-        <div
-          style={{
-            marginTop: 30,
-            background: "#111827",
-            borderRadius: 10,
-            padding: 20,
-            border: "1px solid #334155",
-          }}
-        >
-          <h2>
-            🔍 Détails du log
-          </h2>
-
-          <pre
-            style={{
-              overflowX: "auto",
-              color: "#4ade80",
-            }}
-          >
-            {JSON.stringify(
-              selectedLog,
-              null,
-              2
-            )}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
-
-const th = {
-  padding: "15px",
-  textAlign: "left" as const,
-  fontWeight: "bold",
-};
-
-const td = {
-  padding: "14px",
-};

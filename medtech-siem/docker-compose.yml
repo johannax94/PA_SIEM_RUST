@@ -25,7 +25,9 @@ services:
       - db
 
     environment:
-      DATABASE_URL: postgres://postgres:vaiana@db:5432/medtech_siem
+      DATABASE_URL: postgres://postgres:postgres@db:5432/medtech_siem
+      # Local uniquement — le déploiement en ligne fournit son propre JWT_SECRET.
+      JWT_SECRET: dev-secret-local-only
 
     ports:
       - "3000:3000"
