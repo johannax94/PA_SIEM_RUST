@@ -7,24 +7,15 @@ import {
 } from "../services/api";
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
 
-  const [users, setUsers] =
-    useState<any[]>([]);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("analyst");
 
-  const [username, setUsername] =
-    useState("");
+  const [message, setMessage] = useState("");
 
-  const [password, setPassword] =
-    useState("");
-
-  const [newUserRole, setNewUserRole] =
-    useState("analyst");
-
-  const [message, setMessage] =
-    useState("");
-
-  const currentUserRole =
-    localStorage.getItem("role");
+  const currentUserRole = localStorage.getItem("role");
 
   if (currentUserRole !== "admin") {
     return (
@@ -37,9 +28,7 @@ export default function UsersPage() {
         }}
       >
         <h1>403 - Access Denied</h1>
-        <p>
-          Cette page est réservée aux administrateurs.
-        </p>
+        <p>Cette page est réservée aux administrateurs.</p>
       </div>
     );
   }
@@ -54,13 +43,11 @@ export default function UsersPage() {
   }
 
   async function handleCreateUser() {
-
-    const result =
-      await createUser(
-        username,
-        password,
-        newUserRole
-      );
+    const result = await createUser(
+      username,
+      password,
+      newUserRole
+    );
 
     setMessage(result);
 
@@ -71,20 +58,12 @@ export default function UsersPage() {
     setNewUserRole("analyst");
   }
 
-  async function handleDelete(
-    username: string
-  ) {
-
-    if (
-      !window.confirm(
-        `Supprimer ${username} ?`
-      )
-    ) {
+  async function handleDelete(username: string) {
+    if (!window.confirm(`Supprimer ${username} ?`)) {
       return;
     }
 
-    const result =
-      await deleteUser(username);
+    const result = await deleteUser(username);
 
     setMessage(result);
 
@@ -92,57 +71,17 @@ export default function UsersPage() {
   }
 
   async function handleRoleChange(
-    username: string
+    username: string,
+    role: string
   ) {
-
-    const role = prompt(
-      "Nouveau rôle : admin / analyst / viewer"
+    const result = await updateUserRole(
+      username,
+      role
     );
-
-    if (!role) return;
-
-    const result =
-      await updateUserRole(
-        username,
-        role
-      );
 
     setMessage(result);
 
     await loadUsers();
-  }
-
-  function getRoleBadge(role: string) {
-
-    let background = "#374151";
-
-    if (role === "admin") {
-      background = "#991b1b";
-    }
-
-    if (role === "analyst") {
-      background = "#1d4ed8";
-    }
-
-    if (role === "viewer") {
-      background = "#065f46";
-    }
-
-    return (
-      <span
-        style={{
-          background,
-          color: "white",
-          padding: "4px 12px",
-          borderRadius: "999px",
-          fontSize: "12px",
-          fontWeight: "bold",
-          textTransform: "uppercase",
-        }}
-      >
-        {role}
-      </span>
-    );
   }
 
   return (
@@ -154,7 +93,6 @@ export default function UsersPage() {
         padding: "30px",
       }}
     >
-
       <h1
         style={{
           marginBottom: "25px",
@@ -182,8 +120,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* CREATE USER CARD */}
-
       <div
         style={{
           background: "#111827",
@@ -193,11 +129,7 @@ export default function UsersPage() {
           marginBottom: "30px",
         }}
       >
-        <h3
-          style={{
-            marginBottom: "20px",
-          }}
-        >
+        <h3 style={{ marginBottom: "20px" }}>
           Create User
         </h3>
 
@@ -230,23 +162,13 @@ export default function UsersPage() {
           <select
             value={newUserRole}
             onChange={(e) =>
-              setNewUserRole(
-                e.target.value
-              )
+              setNewUserRole(e.target.value)
             }
             style={inputStyle}
           >
-            <option value="admin">
-              Admin
-            </option>
-
-            <option value="analyst">
-              Analyst
-            </option>
-
-            <option value="viewer">
-              Viewer
-            </option>
+            <option value="admin">Admin</option>
+            <option value="analyst">Analyst</option>
+            <option value="viewer">Viewer</option>
           </select>
 
           <button
@@ -257,8 +179,6 @@ export default function UsersPage() {
           </button>
         </div>
       </div>
-
-      {/* USERS TABLE */}
 
       <div
         style={{
@@ -274,82 +194,71 @@ export default function UsersPage() {
             borderCollapse: "collapse",
           }}
         >
-
           <thead>
             <tr
               style={{
                 background: "#0b1220",
               }}
             >
-              <th style={thStyle}>
-                Username
-              </th>
-
-              <th style={thStyle}>
-                Role
-              </th>
-
-              <th style={thStyle}>
-                Actions
-              </th>
+              <th style={thStyle}>Username</th>
+              <th style={thStyle}>Role</th>
+              <th style={thStyle}>Actions</th>
             </tr>
           </thead>
 
           <tbody>
-
             {users.map((user) => (
-
               <tr
                 key={user.username}
                 style={{
-                  borderBottom:
-                    "1px solid #1f2937",
+                  borderBottom: "1px solid #1f2937",
                 }}
               >
-
                 <td style={tdStyle}>
                   {user.username}
                 </td>
 
                 <td style={tdStyle}>
-                  {getRoleBadge(user.role)}
+                  <select
+                    value={user.role}
+                    onChange={(e) =>
+                      handleRoleChange(
+                        user.username,
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="admin">
+                      Admin
+                    </option>
+
+                    <option value="analyst">
+                      Analyst
+                    </option>
+
+                    <option value="viewer">
+                      Viewer
+                    </option>
+                  </select>
                 </td>
 
                 <td style={tdStyle}>
-
-                  <button
-                    style={editButton}
-                    onClick={() =>
-                      handleRoleChange(
-                        user.username
-                      )
-                    }
-                  >
-                    Edit
-                  </button>
-
                   <button
                     style={deleteButton}
                     onClick={() =>
-                      handleDelete(
-                        user.username
-                      )
+                      handleDelete(user.username)
                     }
                   >
                     Delete
                   </button>
-
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
 
         </table>
       </div>
-
     </div>
   );
 }
@@ -380,16 +289,6 @@ const createButton = {
   padding: "10px 18px",
   cursor: "pointer",
   fontWeight: "bold",
-};
-
-const editButton = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 12px",
-  cursor: "pointer",
-  marginRight: "8px",
 };
 
 const deleteButton = {
