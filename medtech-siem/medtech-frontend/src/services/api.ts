@@ -54,7 +54,7 @@ export async function deleteUser(
     localStorage.getItem("token");
 
   const response = await fetch(
-    `http://localhost:3000/users/${username}`,
+    `${API_URL}/users/${username}`,
     {
       method: "DELETE",
       headers: {
@@ -75,7 +75,7 @@ export async function updateUserRole(
     localStorage.getItem("token");
 
   const response = await fetch(
-    `http://localhost:3000/users/${username}/role`,
+    `${API_URL}/users/${username}/role`,
     {
       method: "PUT",
       headers: {
