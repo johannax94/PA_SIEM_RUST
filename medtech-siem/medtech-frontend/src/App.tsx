@@ -16,7 +16,7 @@ function Sidebar() {
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   return (
