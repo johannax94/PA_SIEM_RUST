@@ -111,7 +111,7 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="stat-grid">
-        <StatCard label="Événements collectés" value={stats?.total_logs ?? 0} color="#8b5cf6" />
+        <StatCard label="Événements collectés" value={stats?.total_logs ?? 0} color="#4d7ea8" />
         <StatCard label="Alertes actives" value={stats?.total_alerts ?? 0} color="#eab308" />
         <StatCard label="Alertes critiques / high" value={highSeverity} color="#ef4444" />
       </div>

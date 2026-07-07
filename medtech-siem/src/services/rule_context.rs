@@ -219,4 +219,61 @@ impl<'a> RuleContext<'a> {
             None => 0,
         }
     }
+
+    /// Nombre d'échecs de logon RDP (Windows 4625, logon_type 10) depuis l'IP
+    /// source du log courant, sur la fenêtre donnée.
+    pub async fn count_rdp_failures_ip(&self, minutes: i64) -> i64 {
+        match &self.log.ip_address {
+            Some(ip) => {
+                rule_utils::count_rdp_failures_by_ip(
+                    self.db,
+                    ip,
+                    self.since_minutes(minutes),
+                )
+                .await
+            }
+            None => 0,
+        }
+    }
+
+    /// Vrai si l'IP source du log est publique (externe), c.-à-d. ni privée
+    /// (RFC 1918), ni loopback, ni link-local. Sert à ne cibler que le RDP
+    /// réellement exposé sur Internet et à écarter les faux positifs internes.
+    pub fn is_source_ip_external(&self) -> bool {
+        use std::net::IpAddr;
+        match self
+            .log
+            .ip_address
+            .as_deref()
+            .and_then(|s| s.parse::<IpAddr>().ok())
+        {
+            Some(IpAddr::V4(ip)) => {
+                !(ip.is_private() || ip.is_loopback() || ip.is_link_local())
+            }
+            Some(IpAddr::V6(ip)) => !ip.is_loopback(),
+            None => false,
+        }
+    }
+
+    /// Volume cumulé (octets) sortant de cette source vers des destinations
+    /// externes sur la fenêtre — utilisé par la détection d'exfiltration.
+    pub async fn sum_external_bytes_out_source(&self, minutes: i64) -> i64 {
+        rule_utils::sum_external_bytes_out_by_source(
+            self.db,
+            &self.log.source_name,
+            self.since_minutes(minutes),
+        )
+        .await
+    }
+
+    /// Nombre d'écritures fichiers portant un marqueur de ransomware (extension
+    /// de chiffrement ou note de rançon) pour cette source sur la fenêtre.
+    pub async fn count_ransomware_writes_source(&self, minutes: i64) -> i64 {
+        rule_utils::count_ransomware_writes_by_source(
+            self.db,
+            &self.log.source_name,
+            self.since_minutes(minutes),
+        )
+        .await
+    }
 }

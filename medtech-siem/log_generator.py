@@ -80,19 +80,48 @@ def send_logs(n):
             print(f"{i} logs sent")
 
 
+def stream_logs(rate_per_sec: float):
+    """Mode SIEM temps réel : émet des logs en continu (Ctrl+C pour arrêter)."""
+    delay = 1.0 / rate_per_sec
+    sent = 0
+    print(f"Flux continu : ~{rate_per_sec:g} logs/s (Ctrl+C pour arrêter)")
+    try:
+        while True:
+            try:
+                requests.post(URL, json=generate_log())
+                sent += 1
+                if sent % 25 == 0:
+                    print(f"{sent} logs envoyés…")
+            except Exception:
+                pass
+            time.sleep(delay)
+    except KeyboardInterrupt:
+        print(f"\nArrêté. {sent} logs envoyés au total.")
+
+
 if __name__ == "__main__":
     # ANCIENNE VERSION : send_logs(10000) en bloquant PUIS 5 threads x 2000
     # (le bloc threading était hors du if __name__ et s'exécutait même à l'import).
-    # Version raisonnable pour une démo : ~600 logs répartis sur 5 threads.
+    #
+    # Usage :
+    #   python log_generator.py                  -> lot unique (~600 logs, 5 threads)
+    #   python log_generator.py --continuous     -> flux continu à 2 logs/s
+    #   python log_generator.py --continuous 10  -> flux continu à 10 logs/s
+    import sys
     import threading
 
-    def worker():
-        send_logs(120)
+    if "--continuous" in sys.argv:
+        idx = sys.argv.index("--continuous")
+        rate = float(sys.argv[idx + 1]) if len(sys.argv) > idx + 1 else 2.0
+        stream_logs(rate)
+    else:
+        def worker():
+            send_logs(120)
 
-    threads = [threading.Thread(target=worker) for _ in range(5)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+        threads = [threading.Thread(target=worker) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-    print("Terminé.")
+        print("Terminé.")
