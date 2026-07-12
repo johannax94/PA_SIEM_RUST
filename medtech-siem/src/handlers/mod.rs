@@ -4,3 +4,6 @@ pub mod alerts;
 pub mod auth_handler;
 pub mod dashboard;
 pub mod users;
+pub mod contact;
+pub mod risk;
+pub mod alert_configs;

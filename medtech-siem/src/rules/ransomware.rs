@@ -1,46 +1,6 @@
-//! ============================================================================
-//! RÈGLE : Ransomware (chiffrement massif de fichiers)
-//! ============================================================================
-//!
-//! MENACE (contexte PME)
-//!   Le ransomware est la menace n°1 des PME : il chiffre tous les fichiers
-//!   partagés et paralyse l'activité (souvent avec double extorsion). Détecter
-//!   le chiffrement EN COURS permet d'isoler le poste avant qu'il ne finisse.
-//!
-//! MITRE ATT&CK
-//!   - T1486  Data Encrypted for Impact
-//!
-//! TÉLÉMÉTRIE PRIMITIVE
-//!   Événements du système de fichiers / EDR (event_type `file_modified` ou
-//!   `file_renamed`), avec dans raw_log :
-//!     - `new_extension` : l'extension après renommage
-//!     - `filename`      : le nom du fichier écrit
-//!
-//! LOGIQUE DE DÉTECTION
-//!   On ne compte PAS le simple volume de fichiers modifiés (une sauvegarde ou
-//!   une copie en modifie beaucoup, sans être une attaque). On compte les
-//!   écritures portant un MARQUEUR de ransomware :
-//!     - extension de chiffrement connue (.locked, .encrypted, .lockbit…) ou
-//!       extension en hexadécimal aléatoire, OU
-//!     - nom de fichier de note de rançon (READ_ME, HOW_TO_DECRYPT…).
-//!   Volume + marqueur = chiffrement en cours.
-//!
-//! SEUIL — JUSTIFICATION
-//!   20 fichiers « marqués » / 3 min sur un même poste. Le ransomware chiffre
-//!   vite et en masse ; une copie légitime n'a AUCUN de ces marqueurs -> pas de
-//!   faux positif de volume.
-//!
-//! AVANT (version faible) : `if 100 fichiers modifiés -> alerte`
-//!   -> se déclenchait sur les sauvegardes, copies de dossiers, scans antivirus.
-//!
-//! FAUX POSITIFS & LIMITES
-//!   - Outil de chiffrement légitime (ex. archivage sécurisé) -> liste blanche
-//!     du poste/processus.
-//!   - Ne détecte pas un ransomware sans changement d'extension ni note (rare) ;
-//!     un signal d'entropie (EDR) serait complémentaire.
-//!
-//! SÉVÉRITÉ : critical (impact business immédiat).
-//! ============================================================================
+//! RÈGLE : Ransomware (chiffrement massif) — MITRE T1486
+//! 20 fichiers "marqués" (extension de chiffrement / note de rançon) / 3 min / poste. critical.
+//! Doc détaillée (menace, télémétrie, faux positifs) : voir soutenance_ideas (racine du repo).
 
 use crate::services::rule_context::RuleContext;
 

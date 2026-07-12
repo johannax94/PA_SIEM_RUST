@@ -90,7 +90,7 @@ def scenarios():
                            username=f"user{i}", message="bad password")
                   for i in range(5)]),
 
-        ("Account compromise (échecs puis succès)", "account_compromise",
+        ("Brute-force RÉUSSI (échecs puis succès)", "bruteforce_success",
          lambda: (send_many(5, source_name="srv-ac", event_type="login_failed",
                             severity="warning", username="bob", message="fail"),
                   send_log(source_name="srv-ac", event_type="login_success",
@@ -100,13 +100,16 @@ def scenarios():
          lambda: send_log(source_name="pc-ps", event_type="process_create",
                           severity="high", message="powershell.exe -nop -enc SQBFAFgA")),
 
-        ("Exécution cmd.exe", "cmd_execution",
+        ("Exécution cmd.exe suspecte (recon)", "cmd_suspect",
          lambda: send_log(source_name="pc-cmd", event_type="process_create",
-                          severity="medium", message="cmd.exe /c whoami")),
+                          severity="medium", message="cmd.exe /c whoami & net user")),
 
-        ("Scan réseau (50 connexions bloquées)", "network_scan",
-         lambda: send_many(50, source_name="fw-scan", event_type="blocked_connection",
-                           severity="warning", ip_address="10.0.0.99", message="blocked")),
+        # 25 ports DISTINCTS sondés depuis une IP externe -> scan (high, T1595.001).
+        ("Scan de ports (25 ports distincts)", "network_scan",
+         lambda: [send_log(source_name="fw01", event_type="blocked_connection",
+                           severity="warning", ip_address="203.0.113.50", message="blocked",
+                           raw_log={"dest_ip": "192.168.1.10", "dest_port": 1000 + i})
+                  for i in range(25)]),
 
         # 22 fichiers renommés avec l'extension ransomware ".locked".
         ("Ransomware (22 fichiers .locked)", "ransomware",
@@ -133,21 +136,35 @@ def scenarios():
                            severity="info", username="alice", message="ok",
                            raw_log={"country": "RU"}))),
 
-        ("DNS tunneling (100 requêtes DNS)", "dns_tunneling",
-         lambda: send_many(100, source_name="srv-dns", event_type="dns_query",
-                           severity="info", message="dns query")),
-
-        ("Beaconing C2 (30 connexions sortantes)", "beaconing_c2",
-         lambda: send_many(30, source_name="srv-c2", event_type="outbound_connection",
-                           severity="info", ip_address="10.0.0.42", message="beacon")),
-
         ("Privilege escalation", "privilege_escalation",
          lambda: send_log(source_name="srv-pe", event_type="privilege_escalation",
                           severity="high", message="SeDebugPrivilege enabled")),
 
-        ("Pass-the-Hash (logon type 9 NTLM)", "pass_the_hash",
-         lambda: send_log(source_name="srv-pth", event_type="logon", severity="high",
-                          message="NTLM logon", raw_log={"logon_type": "9"})),
+        # Nouveau compte créé PUIS ajouté au groupe administrateurs (persistence).
+        ("Nouveau compte promu admin", "new_account_admin_group",
+         lambda: (send_log(source_name="dc01", event_type="account_created",
+                           severity="info", username="hacker", message="account created"),
+                  send_log(source_name="dc01", event_type="group_membership_change",
+                           severity="high", username="hacker",
+                           message="user hacker added to administrators group"))),
+
+        ("Journal d'audit effacé", "audit_log_cleared",
+         lambda: send_log(source_name="dc01", event_type="audit_log_cleared",
+                          severity="high", message="Security event log cleared (1102)")),
+
+        ("Suppression des shadow copies", "shadow_copy_deletion",
+         lambda: send_log(source_name="fs01", event_type="process_create",
+                          severity="high", message="vssadmin delete shadows /all /quiet")),
+
+        ("Antivirus désactivé (Defender)", "defense_disabled",
+         lambda: send_log(source_name="pc01", event_type="process_create",
+                          severity="high",
+                          message="powershell Set-MpPreference -DisableRealtimeMonitoring $true")),
+
+        ("Office engendre un shell (macro)", "office_spawns_shell",
+         lambda: send_log(source_name="pc02", event_type="process_create",
+                          severity="high", message="powershell.exe -w hidden IEX(payload)",
+                          raw_log={"parent_process": "winword.exe"})),
 
 
         # Règle approfondie : 22 échecs RDP (4625, logon_type 10) depuis une IP

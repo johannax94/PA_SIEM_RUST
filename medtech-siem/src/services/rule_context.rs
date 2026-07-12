@@ -276,4 +276,20 @@ impl<'a> RuleContext<'a> {
         )
         .await
     }
+
+    /// Nombre de ports de destination distincts sondés par l'IP source du log
+    /// courant sur la fenêtre — utilisé par la détection de scan réseau.
+    pub async fn count_distinct_ports_ip(&self, minutes: i64) -> i64 {
+        match &self.log.ip_address {
+            Some(ip) => {
+                rule_utils::count_distinct_ports_by_ip(
+                    self.db,
+                    ip,
+                    self.since_minutes(minutes),
+                )
+                .await
+            }
+            None => 0,
+        }
+    }
 }

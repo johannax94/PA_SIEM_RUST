@@ -1,43 +1,6 @@
-//! ============================================================================
-//! RÈGLE : Exfiltration de données vers l'externe
-//! ============================================================================
-//!
-//! MENACE (contexte PME)
-//!   Vol de données par un salarié sur le départ, un compte compromis, ou la
-//!   « double extorsion » d'un ransomware (les données sont exfiltrées AVANT
-//!   d'être chiffrées, pour faire pression). C'est l'une des pertes les plus
-//!   coûteuses pour une PME (fuite RGPD, secrets clients).
-//!
-//! MITRE ATT&CK
-//!   - T1048  Exfiltration Over Alternative Protocol
-//!
-//! TÉLÉMÉTRIE PRIMITIVE
-//!   Logs de flux réseau proxy/pare-feu normalisés (event_type `network_flow`),
-//!   avec dans raw_log :
-//!     - `bytes_out`  : octets envoyés
-//!     - `dest_ip`    : IP de destination
-//!
-//! LOGIQUE DE DÉTECTION
-//!   On ne regarde PAS un transfert isolé (trop de faux positifs : sauvegardes,
-//!   visio, envois ponctuels). On agrège le **volume cumulé sortant vers des
-//!   destinations EXTERNES** (IP publiques) pour un même poste sur 1 heure, et
-//!   on alerte au-dessus d'un seuil.
-//!
-//! SEUIL — JUSTIFICATION
-//!   500 Mo cumulés vers l'externe / poste / heure. Un poste bureautique envoie
-//!   quelques Ko-Mo vers Internet (mails, navigation) ; 500 Mo/h vers des IP
-//!   publiques est anormal et mérite investigation.
-//!
-//! AVANT (version faible) : `if bytes > 100 Mo (transfert unique) -> alerte`
-//!   -> déclenchait sur n'importe quelle sauvegarde/visio/upload légitime.
-//!
-//! FAUX POSITIFS & LIMITES
-//!   - Sauvegarde cloud légitime (Backup SaaS) -> mettre l'IP en liste blanche.
-//!   - Gros envoi ponctuel (WeTransfer) -> le seuil horaire limite le bruit.
-//!   - Idéalement, affiner avec une base de comportement par utilisateur.
-//!
-//! SÉVÉRITÉ : high.
-//! ============================================================================
+//! RÈGLE : Exfiltration de données vers l'externe — MITRE T1048
+//! 500 Mo cumulés sortant vers des IP externes / poste / heure. Sévérité high.
+//! Doc détaillée (menace, télémétrie, faux positifs) : voir soutenance_ideas (racine du repo).
 
 use crate::services::rule_context::RuleContext;
 

@@ -98,6 +98,38 @@ let app = Router::new()
         get(handlers::dashboard::get_dashboard)
     )
     .route(
+        "/contact",
+        post(handlers::contact::send_contact)
+    )
+    .route(
+        "/risk",
+        get(handlers::risk::get_risk)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/alert-configs",
+        get(handlers::alert_configs::list_alert_configs)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/alert-configs",
+        post(handlers::alert_configs::create_alert_config)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
+        "/alert-configs/:id",
+        delete(handlers::alert_configs::delete_alert_config)
+            .route_layer(
+                middleware::from_fn(auth_middleware)
+            )
+    )
+    .route(
         "/users",
         get(handlers::users::get_users)
             .route_layer(

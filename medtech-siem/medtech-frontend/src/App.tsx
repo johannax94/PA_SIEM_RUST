@@ -11,15 +11,17 @@ import AlertsPage from "./pages/AlertsPage";
 import LogsPage from "./pages/LogsPage";
 import LoginPage from "./pages/LoginPage";
 import UsersPage from "./pages/UsersPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import LandingPage from "./pages/LandingPage";
+import ContactPage from "./pages/ContactPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Logo from "./components/Logo";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/alerts": "Alertes",
   "/logs": "Logs",
   "/users": "Gestion des utilisateurs",
+  "/notifications": "Notifications email",
 };
 
 function logout() {
@@ -40,6 +42,10 @@ function Shell() {
     return <LoginPage />;
   }
 
+  if (location.pathname === "/contact") {
+    return <ContactPage />;
+  }
+
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link${isActive ? " active" : ""}`;
 
@@ -47,11 +53,7 @@ function Shell() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <Logo />
-          <div>
-            MEDTECH
-            <span className="logo-sub">SIEM</span>
-          </div>
+          <div>MEDTECH</div>
         </div>
 
         <nav>
@@ -63,6 +65,9 @@ function Shell() {
           </NavLink>
           <NavLink to="/logs" className={navClass}>
             Logs
+          </NavLink>
+          <NavLink to="/notifications" className={navClass}>
+            Notifications
           </NavLink>
           {role === "admin" && (
             <NavLink to="/users" className={navClass}>
@@ -81,10 +86,6 @@ function Shell() {
       <div className="main">
         <header className="topbar">
           <h1>{PAGE_TITLES[location.pathname] ?? "Dashboard"}</h1>
-          <div className="live-indicator">
-            <span className="pulse-dot" />
-            Live
-          </div>
         </header>
 
         <div className="content">
@@ -118,6 +119,14 @@ function Shell() {
               element={
                 <ProtectedRoute>
                   <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />
