@@ -79,12 +79,12 @@ export default function ContactPage() {
             <h2 className="contact-panel-title">Notre SIEM</h2>
             <p>
               <strong>MedTech SIEM</strong> est une solution de{" "}
-              <em>Security Information &amp; Event Management</em> créée en{" "}
-              <strong>2025</strong> dans le cadre du projet annuel ESGI, par
+              <em>SIEM</em> créée en{" "}
+              <strong>2026</strong> pour toute les PME ayant besoin de protection, par
               Meguedad Johanna et Languedoc Clement.
             </p>
             <p>
-              Pensée pour les infrastructures médicales et les PME, elle a pour
+              Pensée pour les infrastructures les PME, elle a pour
               objectifs :
             </p>
             <ul className="contact-purposes">

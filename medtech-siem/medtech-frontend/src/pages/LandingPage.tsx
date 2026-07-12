@@ -45,24 +45,9 @@ export default function LandingPage() {
         </div>
 
         <div className="landing-features">
-          <div className="landing-feature">
-            <svg className="landing-feature-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12h4l3 8 4-16 3 8h4" />
-            </svg>
-            Collecte temps réel
-          </div>
-          <div className="landing-feature">
-            <svg className="landing-feature-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
-            </svg>
-            regles de detection
-          </div>
-          <div className="landing-feature">
-            <svg className="landing-feature-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 20V10M10 20V4M16 20v-7M4 20h16" />
-            </svg>
-            Tableau de bord &amp; alertes
-          </div>
+          <div className="landing-feature">Collecte temps réel</div>
+          <div className="landing-feature">règles de détection</div>
+          <div className="landing-feature">Tableau de bord &amp; alertes</div>
         </div>
       </main>
 

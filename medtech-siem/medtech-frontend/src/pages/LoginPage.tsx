@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div className="login-logo">
           <Logo size={48} />
           <h1>MEDTECH</h1>
-          <span className="login-sub">Security Information &amp; Event Management</span>
+          <span className="login-sub">SIEM pour PME</span>
         </div>
 
         <div className="login-field">
