@@ -27,6 +27,9 @@ export default defineConfig({
       "/alerts": backend(),
       "/dashboard": backend(),
       "/users": backend(),
+      "/contact": backend(),
+      "/risk": backend(),
+      "/alert-configs": backend(),
     },
   },
 });

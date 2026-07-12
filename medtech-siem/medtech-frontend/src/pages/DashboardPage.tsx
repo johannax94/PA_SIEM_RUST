@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { fetchDashboard, fetchAlerts } from "../services/api";
+import { fetchDashboard, fetchAlerts, fetchRisk } from "../services/api";
 import SeverityBadge, { normalizeSeverity } from "../components/SeverityBadge";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -84,9 +84,69 @@ function SeverityDonut({ alerts }: { alerts: any[] }) {
   );
 }
 
+/* RBA : score de risque cumulé par entité, normalisé sur 100
+   (barème Elastic par détection). Bandes : <= 25 low, <= 75 medium, > 75 high. */
+const RISK_TIER_COLORS: Record<string, string> = {
+  none: "#64748b",
+  low: "#3b82f6",
+  medium: "#eab308",
+  high: "#ef4444",
+};
+const RISK_MAX_SCALE = 100; // score normalisé sur 100 = jauge pleine
+
+function RiskEntities({ entities }: { entities: any[] }) {
+  if (entities.length === 0) {
+    return <div className="empty-state">Aucune entité à risque sur 24 h</div>;
+  }
+  return (
+    <div className="bar-list">
+      {entities.slice(0, 8).map((e) => {
+        const color = RISK_TIER_COLORS[e.tier] ?? RISK_TIER_COLORS.none;
+        const width = Math.min((e.risk_score / RISK_MAX_SCALE) * 100, 100);
+        return (
+          <div className="bar-row" key={e.entity} title={e.rules}>
+            <span className="bar-label cell-mono">{e.entity}</span>
+            <span className="bar-track">
+              <span
+                className="bar-fill"
+                style={{ width: `${width}%`, background: color }}
+              />
+            </span>
+            <span className="bar-value" style={{ color }}>
+              {e.risk_score}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RiskIncidents({ incidents }: { incidents: any[] }) {
+  const open = incidents.filter((i) => i.status === "open");
+  if (open.length === 0) {
+    return <div className="empty-state">Aucun incident ouvert</div>;
+  }
+  return (
+    <div className="related-list">
+      {open.slice(0, 5).map((i) => (
+        <div className="related-log" key={i.id}>
+          <div className="related-log-head">
+            <SeverityBadge severity={i.severity} />
+            <span className="cell-strong cell-mono">{i.entity}</span>
+            <span className="related-log-time">score {i.risk_score}</span>
+          </div>
+          <div className="related-log-msg">Règles : {i.rules_involved}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [risk, setRisk] = useState<any>(null);
 
   useEffect(() => {
     const load = () => {
@@ -95,6 +155,9 @@ export default function DashboardPage() {
         .catch(() => {});
       fetchAlerts()
         .then((d) => setAlerts(Array.isArray(d) ? d : []))
+        .catch(() => {});
+      fetchRisk()
+        .then(setRisk)
         .catch(() => {});
     };
     load();
@@ -154,6 +217,20 @@ export default function DashboardPage() {
         <div className="panel">
           <h3 className="panel-title">Répartition par sévérité</h3>
           <SeverityDonut alerts={alerts} />
+        </div>
+      </div>
+
+      <div className="dashboard-grid">
+        <div className="panel">
+          <h3 className="panel-title">
+            Entités à risque — RBA (score cumulé 24 h)
+          </h3>
+          <RiskEntities entities={risk?.entities ?? []} />
+        </div>
+
+        <div className="panel">
+          <h3 className="panel-title">Incidents de risque ouverts</h3>
+          <RiskIncidents incidents={risk?.incidents ?? []} />
         </div>
       </div>
     </div>

@@ -2,11 +2,437 @@
 2 - Envoie en direct d'un flot de logs pour observer le comportement du SIEM
 3- chargement automatique toutes les 5 min
 4 - Expliquer 5 règles (les plus pertinentes)
-5 - expliquer des types d'attaques pouvant être détéctées par ces 5 règles 
+5 - expliquer des types d'attaques pouvant être détéctées par ces 5 règles
 6 - Présenter EN GROS toutes les foncitonnalités (pas passer 5 ans dessus car c la base d'avoir un compte admin par ex on sen tape)
 pr rappel foncitonnalotés : admin CRUD (create update delete)
                             barre de recherche intelligente (elle recherche sur toutes les colonnes)
                             règles qui déclenchent des alertes
                             dashboard pr vision macorscopique de l'état du SIEM
                             logs avec vision claire et parsing clair
-                            
+
+
+================================================================================
+ FICHE DE RÉVISION JURY — RÈGLES DE DÉTECTION (detection engineering + MITRE)
+================================================================================
+
+Ce document regroupe la doc de CHAQUE règle (menace, télémétrie, seuil justifié,
+faux positifs). Objectif : pouvoir répondre à n'importe quelle question du jury
+sans relire le code. Les règles sont classées selon la KILL-CHAIN MITRE ATT&CK,
+c'est-à-dire l'ordre chronologique d'une vraie attaque.
+
+
+--------------------------------------------------------------------------------
+ MÉTHODE COMMUNE À TOUTES LES RÈGLES (à énoncer en intro)
+--------------------------------------------------------------------------------
+Chaque règle suit la même démarche de "detection engineering" :
+
+  1. TÉLÉMÉTRIE PRIMITIVE : on part d'un log brut réel (ex. Event Windows 4625),
+     PAS d'un "l'attaque est là". On DÉRIVE l'attaque à partir de signaux bas niveau.
+  2. SIGNAL DISCRIMINANT : on isole ce qui distingue l'attaque de l'usage normal
+     (ex. compter les PORTS DISTINCTS et non le volume de connexions).
+  3. SEUIL JUSTIFIÉ : chaque chiffre (10 échecs, 500 Mo, 20 ports) est motivé par
+     le comportement légitime attendu, pas choisi au hasard.
+  4. SÉVÉRITÉ BASÉE SUR LE RISQUE : critical/high/medium selon l'impact réel.
+  5. FAUX POSITIFS DOCUMENTÉS : on assume les limites et on dit comment les traiter
+     (liste blanche, corrélation, fenêtre).
+
+Argument d'architecture (point 1 ci-dessus) : la logique commune (compter par IP /
+par user, sommer des octets, dédupliquer une alerte) est factorisée dans
+rule_utils.rs + rule_context.rs. Écrire une nouvelle règle = écrire SA logique
+métier + appeler les helpers. => extensible, testable, lisible.
+
+
+================================================================================
+ TABLEAU RÉCAPITULATIF (pour retrouver une règle en 2 secondes)
+================================================================================
+
+PHASE            RÈGLE                  MITRE              SEUIL / DÉCLENCHEUR                     SÉVÉRITÉ
+---------------- ---------------------- ------------------ -------------------------------------- ----------
+Accès initial    rdp_bruteforce         T1110.001/T1021.001 20 échecs RDP (logon 10) /5min, IP ext high
+Accès initial    office_spawns_shell    T1566.001/T1204.002 Office (Word/Excel) -> shell           high
+Accès initial    failed_login           T1110.001          10 échecs /5min sur MÊME compte        critical si privilégié, sinon high
+Accès initial    password_spray         T1110.003          5 comptes DISTINCTS /5min, MÊME IP     high
+Accès initial    bruteforce_success     T1110 + T1078      succès après >=5 échecs /10min         critical
+Accès initial    rdp_foreign_country    T1021.001 / T1133  RDP depuis pays hors liste (FR)        high
+Accès initial    impossible_travel      T1078              2 pays distincts /60min, même compte   high
+Exécution        powershell_suspect     T1059.001/T1027    1 marqueur fort OU 2 faibles           critical / high
+Exécution        cmd_execution          T1059.003          1 marqueur fort OU 2 faibles           critical / high
+Persistence      new_account_admin      T1136.001/T1098    compte créé PUIS promu admin <60min    critical
+Priv. Escalation privilege_escalation   T1134 / T1098      SeDebugPrivilege ou ajout groupe admin high
+Évasion          defense_disabled       T1562.001          AV/pare-feu désactivé, exclusion       high
+Évasion          log_cleared            T1070.001          journal Security effacé (1102/wevtutil) critical
+Découverte       network_scan           T1595.001 / T1046  20 ports DISTINCTS /2min, même IP      high (ext) / medium (int)
+Impact           shadow_copy_deletion   T1490              vssadmin/wmic/wbadmin delete           critical
+Impact           ransomware             T1486              20 fichiers "marqués" /3min            critical
+Impact           data_exfiltration      T1048              500 Mo cumulés vers externe /poste/h   high
+
+
+================================================================================
+ PHASE 1 — ACCÈS INITIAL (comment l'attaquant entre)
+================================================================================
+
+--------------------------------------------------------------------------------
+ RÈGLE : Brute-force RDP depuis Internet  (rdp_bruteforce.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : le RDP (Bureau à distance) exposé sur Internet est le VECTEUR
+  D'ACCÈS INITIAL N°1 des ransomwares contre les PME. L'attaquant scanne le port
+  3389 puis tente des milliers de mots de passe automatiquement.
+MITRE : T1110.001 (Password Guessing) + T1021.001 (Remote Desktop Protocol).
+TÉLÉMÉTRIE : Event Windows 4625 ("account failed to log on"), normalisé
+  `login_failed`, avec logon_type=10 (RemoteInteractive = session RDP) + IP source.
+LOGIQUE : échec 4625 -> de type RDP (logon_type 10) -> depuis IP EXTERNE (le RDP
+  interne = l'IT, pas la menace) -> >= 20 échecs depuis la MÊME IP sur la fenêtre.
+SEUIL : 20 échecs / 5 min depuis une seule IP externe. Un humain se trompe 2-3
+  fois ; 20 en 5 min = outil automatisé.
+FAUX POSITIFS : scanner de vulns autorisé -> liste blanche d'IP ; NAT (plusieurs
+  employés derrière une IP publique) -> rare en RDP.
+SÉVÉRITÉ : high (précurseur direct de ransomware).
+
+--------------------------------------------------------------------------------
+ RÈGLE : Application Office engendre un shell  (office_spawns_shell.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : le phishing avec pièce jointe Office piégée est, avec le RDP, le
+  vecteur d'accès n°1. Quand l'utilisateur active les macros, Word/Excel lance un
+  interpréteur (PowerShell, cmd, wscript) pour télécharger la charge. Un processus
+  Office qui engendre un shell n'a AUCUNE raison légitime.
+MITRE : T1566.001 (Spearphishing Attachment) + T1204.002 (User Execution).
+TÉLÉMÉTRIE : création de processus (4688 / Sysmon 1), avec parent_process (l'appli
+  Office) et la ligne de commande de l'enfant.
+LOGIQUE : relation parent -> enfant : parent = appli Office, enfant = shell.
+FAUX POSITIFS : macro d'entreprise légitime lançant un script -> rare, liste
+  blanche par document/hôte. Nécessite que parent_process soit collecté (Sysmon).
+SÉVÉRITÉ : high (accès initial en cours).
+
+--------------------------------------------------------------------------------
+ RÈGLE : Brute-force ciblé sur un compte  (failed_login.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : un attaquant s'acharne sur UN compte précis (admin, compta,
+  dirigeant) dont l'identifiant a fuité ou a été deviné (OSINT). À distinguer du
+  password spraying (beaucoup de comptes, peu d'essais) : ici un seul compte martelé.
+MITRE : T1110.001 (Password Guessing).
+TÉLÉMÉTRIE : échec d'auth (4625, SSH/VPN/webmail), normalisé `login_failed`,
+  portant le username visé.
+LOGIQUE : compter les échecs pour un MÊME compte sur une fenêtre courte.
+SEUIL : 10 échecs / 5 min sur le même compte. Un légitime se trompe 2-3 fois puis
+  réinitialise ; 10 essais rapprochés = outil automatisé.
+SÉVÉRITÉ : critical si compte privilégié (admin/root...), sinon high.
+FAUX POSITIFS : mot de passe oublié / client mal configuré qui reboucle -> le
+  seuil limite le bruit, on peut exclure des comptes de service. Le lockout peut
+  stopper avant le seuil.
+
+--------------------------------------------------------------------------------
+ RÈGLE : Password spraying  (password_spray.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : le COMPLÉMENT de failed_login. Ici l'attaquant fait l'inverse du
+  brute-force ciblé : au lieu de marteler UN compte (risque de verrouillage), il
+  essaie UN mot de passe courant (ex. "Automne2025!") sur BEAUCOUP de comptes
+  depuis une même IP. Peu d'essais par compte = il passe sous le radar du lockout.
+MITRE : T1110.003 (Brute Force: Password Spraying).
+TÉLÉMÉTRIE : échec d'auth (Event 4625, SSH/VPN/webmail), normalisé `login_failed`,
+  portant le username visé ET l'IP source.
+LOGIQUE : compter les comptes DISTINCTS qui échouent depuis la MÊME IP sur la
+  fenêtre. Le helper count_distinct_users est scopé par l'IP source -> c'est ce
+  regroupement par IP qui distingue le spray du brute-force ciblé.
+SEUIL : 5 comptes distincts / 5 min depuis une même IP. Une IP légitime (poste,
+  passerelle NAT) produit rarement 5 utilisateurs différents en échec en 5 min ;
+  un outil de spray en teste des dizaines.
+SÉVÉRITÉ : high (tentative d'accès, pas encore de compromission confirmée — on
+  réserve critical à la réussite : cf. bruteforce_success).
+FAUX POSITIFS & LIMITES : une passerelle NAT partagée peut regrouper plusieurs
+  employés sous une IP publique -> liste blanche des IP de sortie connues. La règle
+  compte les comptes distincts mais ne vérifie pas explicitement le "peu d'essais
+  par compte" (signature fine du spray) -> raffinement possible via un plafond
+  d'essais par compte. Complémentaire de failed_login (UN compte martelé).
+
+--------------------------------------------------------------------------------
+ RÈGLE : Brute-force RÉUSSI  (bruteforce_success.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : les autres règles brute-force détectent la TENTATIVE. Celle-ci
+  détecte la RÉUSSITE : un compte qui vient d'encaisser une rafale d'échecs et qui,
+  soudain, se connecte avec succès. Alerte la plus urgente du SOC : compte présumé
+  compromis, à désactiver immédiatement.
+MITRE : T1110 (Brute Force réussi) + T1078 (Valid Accounts).
+TÉLÉMÉTRIE : `login_failed` (4625) et `login_success` (4624), portant le username.
+LOGIQUE : sur un login_success, compter les login_failed du MÊME compte sur la
+  fenêtre récente. Rafale d'échecs + succès = mot de passe trouvé.
+SEUIL : 5 échecs / 10 min avant le succès. Moins strict que failed_login (10) car
+  ici le succès CONFIRME la suspicion.
+SÉVÉRITÉ : critical (accès obtenu).
+FAUX POSITIFS : utilisateur qui retrouve son mot de passe après plusieurs essais
+  (rare à 5/10min). Amélioration : corréler par IP source (même IP sur échecs+succès).
+
+--------------------------------------------------------------------------------
+ RÈGLE : RDP depuis un pays inhabituel  (rdp_foreign_country.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : une connexion RDP légitime vient du périmètre de l'entreprise
+  (France). Une session RDP dont l'IP source est géolocalisée à l'étranger est un
+  signal d'accès distant malveillant (identifiants volés utilisés depuis l'étranger).
+MITRE : T1021.001 (Remote Desktop Protocol) + T1133 (External Remote Services).
+TÉLÉMÉTRIE : connexion RDP (`rdp_login`) avec, dans raw_log, le pays GeoIP de l'IP
+  source (`country`).
+LOGIQUE : si le pays n'est pas dans la liste autorisée (FR) -> alerte. Liste
+  d'autorisation simple, à adapter au périmètre réel de la PME.
+SÉVÉRITÉ : high.
+FAUX POSITIFS & LIMITES : télétravail/déplacement à l'étranger d'un salarié, ou
+  VPN dont la sortie est hors FR -> élargir la liste de pays autorisés. Dépend de
+  la qualité du GeoIP.
+
+--------------------------------------------------------------------------------
+ RÈGLE : Impossible travel  (impossible_travel.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : un même compte se connecte avec succès depuis deux pays différents
+  en peu de temps. Physiquement impossible -> soit le compte est PARTAGÉ (mauvaise
+  pratique), soit il est COMPROMIS (l'attaquant se connecte pendant que l'employé
+  travaille aussi).
+MITRE : T1078 (Valid Accounts) — détection d'usage anormal d'un compte valide.
+TÉLÉMÉTRIE : connexions RÉUSSIES (`login_success`) portant le username et le pays
+  GeoIP (raw_log->>'country').
+LOGIQUE : compter les PAYS DISTINCTS d'où le même compte s'est connecté avec succès
+  sur la fenêtre ; >= 2 pays = anomalie.
+SEUIL : 2 pays / 60 min. Version simplifiée (pas de calcul de vitesse de
+  déplacement réelle) : le simple fait d'apparaître dans 2 pays en 1 h suffit.
+SÉVÉRITÉ : high.
+FAUX POSITIFS & LIMITES : VPN d'entreprise ou proxy dont la sortie change de pays,
+  déplacement + connexion résiduelle d'une app mobile -> liste blanche des plages
+  VPN. Amélioration : vraie distance/temps (vitesse impossible) plutôt que "2 pays".
+
+
+================================================================================
+ PHASE 2 — EXÉCUTION (l'attaquant lance des commandes — "living off the land")
+================================================================================
+
+Note commune : PowerShell et cmd.exe sont des binaires Windows SIGNÉS, présents
+partout, lancés par des usages légitimes. Alerter sur leur simple lancement noie
+l'analyste. On utilise donc des MARQUEURS PONDÉRÉS : un marqueur FORT (pas d'usage
+légitime courant) suffit ; les marqueurs FAIBLES (usage admin possible) vont par
+DEUX — c'est leur COMBINAISON qui signe l'attaque.
+
+--------------------------------------------------------------------------------
+ RÈGLE : PowerShell suspect  (powershell_suspect.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : PowerShell est l'outil n°1 du "living off the land" : télécharger
+  la charge (download cradle), l'exécuter en mémoire sans toucher le disque,
+  masquer la commande (Base64). Quasi toutes les chaînes ransomware PME passent par
+  une ligne PowerShell obfusquée.
+MITRE : T1059.001 (PowerShell) + T1027 (Obfuscation) + T1105 (Ingress Tool Transfer).
+TÉLÉMÉTRIE : création de processus (4688 / Sysmon 1), ligne de commande dans message.
+MARQUEURS FORTS (1 suffit) : -enc / FromBase64String (commande encodée),
+  DownloadString / DownloadFile (download cradle), Invoke-Mimikatz, contournement AMSI.
+MARQUEURS FAIBLES (>=2) : -nop, bypass, hidden, IEX, Invoke-WebRequest, Net.WebClient.
+SEUIL : `powershell -ExecutionPolicy Bypass -File deploy.ps1` (1 faible) = déploiement
+  IT banal -> silencieux. `-nop -w hidden IEX(...)` (3 faibles) = attaque -> alerte.
+  Ancienne version : alertait dès 1 marqueur faible -> bruyante.
+SÉVÉRITÉ : critical si marqueur fort, high si combinaison de faibles.
+FAUX POSITIFS : outils de déploiement (SCCM, Intune) -> liste blanche par compte de
+  service. Obfuscation par variables d'env ou script sur disque échappe (couvert en
+  aval par cmd_execution).
+
+--------------------------------------------------------------------------------
+ RÈGLE : cmd.exe suspect  (cmd_execution.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : cmd.exe est lancé en permanence par des usages légitimes. Ce qui
+  compte c'est ce que l'attaquant en FAIT : énumérer le système (whoami, net user),
+  se maintenir (schtasks, sc create), récupérer/exécuter une charge (certutil,
+  bitsadmin).
+MITRE : T1059.003 (Windows Command Shell) + T1033/T1087 (Discovery) +
+  T1053.005/T1543.003 (Scheduled Task / Service) + T1105 (Ingress Tool Transfer).
+TÉLÉMÉTRIE : création de processus (4688 / Sysmon 1), ligne de commande dans message.
+MARQUEURS FORTS (1 suffit) : certutil, bitsadmin, "sc create", "schtasks /create", "/add".
+MARQUEURS FAIBLES (>=2) : whoami, net user, net group, ipconfig, systeminfo,
+  tasklist, nltest, reg query.
+SEUIL : `cmd /c installer.bat` (0 marqueur) -> silencieux. `whoami & net user`
+  (2 faibles) = recon manuelle post-compromission -> alerte high. `certutil -urlcache
+  -f http://... payload.exe` (1 fort) -> critical.
+SÉVÉRITÉ : critical si marqueur fort, high si combinaison de recon.
+FAUX POSITIFS : scripts d'admin combinant plusieurs commandes -> liste blanche par
+  compte de service / hostname.
+
+
+================================================================================
+ PHASE 3 — PERSISTENCE (l'attaquant s'installe durablement)
+================================================================================
+
+--------------------------------------------------------------------------------
+ RÈGLE : Compte fraîchement créé ajouté aux administrateurs  (new_account_admin.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : après compromission, l'attaquant se crée une PORTE DÉROBÉE durable :
+  un nouveau compte, aussitôt promu administrateur. Il pourra revenir même si le
+  compte compromis initial est réinitialisé. En PME, les créations d'admin sont
+  rares et planifiées -> le combo "créé puis promu dans l'heure" est un signal fort.
+MITRE : T1136.001 (Create Account) + T1098 (Account Manipulation).
+TÉLÉMÉTRIE : Event 4720 (création, `account_created`) + Event 4732/4728 (ajout à un
+  groupe, `group_membership_change`), avec le username et le nom du groupe.
+LOGIQUE : sur un ajout à un groupe admin, vérifier si CE compte a été créé dans la
+  fenêtre récente. (La règle privilege_escalation couvre déjà l'ajout seul ; ici on
+  détecte la SÉQUENCE création -> promo = persistence.)
+SEUIL : fenêtre de 60 min entre création et promotion. Un provisioning IT légitime
+  est rare, tracé et planifié ; un attaquant enchaîne en secondes (net user + net
+  localgroup).
+SÉVÉRITÉ : critical.
+FAUX POSITIFS : onboarding IT automatisé -> liste blanche du compte de service.
+
+--------------------------------------------------------------------------------
+ RÈGLE : Élévation de privilèges  (privilege_escalation.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : une fois entré avec un compte standard, l'attaquant cherche à
+  passer administrateur pour agir sans limite (désactiver l'AV, accéder aux
+  partages, déployer le ransomware). Deux gestes typiques : abuser d'un privilège
+  système sensible, ou s'ajouter/ajouter un compte à un groupe administrateur.
+MITRE : T1134 (Access Token Manipulation — ex. SeDebugPrivilege) + T1098
+  (Account Manipulation — ajout à un groupe privilégié).
+TÉLÉMÉTRIE : événement d'élévation dédié (`privilege_escalation`) ou ligne de
+  commande contenant "SeDebugPrivilege" ; OU ajout à un groupe
+  (`group_membership_change`) visant un groupe administrateur (FR/EN, local/domaine).
+LOGIQUE : l'un de ces signaux suffit. Complémentaire de new_account_admin : ici on
+  couvre l'AJOUT SEUL (high) ; la SÉQUENCE "compte créé PUIS promu" est traitée
+  plus sévèrement (critical) par new_account_admin.
+SÉVÉRITÉ : high.
+FAUX POSITIFS & LIMITES : administration légitime (un admin ajoute un collègue au
+  groupe) -> à corréler avec un ticket/changement autorisé. SeDebugPrivilege est
+  aussi utilisé par certains outils de debug légitimes -> liste blanche possible.
+
+
+================================================================================
+ PHASE 4 — ÉVASION (l'attaquant efface ses traces / neutralise les défenses)
+================================================================================
+
+--------------------------------------------------------------------------------
+ RÈGLE : Défenses de sécurité désactivées  (defense_disabled.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : avant d'agir, l'attaquant neutralise les protections : désactive
+  l'antivirus (Defender), ajoute une exclusion pour y déposer sa charge, ou coupe
+  le pare-feu. Étape charnière juste avant le déploiement de l'outil malveillant.
+MITRE : T1562.001 (Impair Defenses: Disable or Modify Tools).
+TÉLÉMÉTRIE : création de processus (4688 / Sysmon 1), ligne de commande dans message.
+LOGIQUE (marqueurs forts, 1 suffit) : DisableRealtimeMonitoring, DisableAntiSpyware,
+  -ExclusionPath, Add-MpPreference, arrêt/désactivation du service WinDefend, ou
+  "netsh advfirewall ... off".
+SÉVÉRITÉ : high.
+FAUX POSITIFS : admin désactivant l'AV pour un dépannage -> à corréler avec un
+  ticket ; on assume l'alerte (le geste mérite vérification).
+
+--------------------------------------------------------------------------------
+ RÈGLE : Journal d'audit effacé  (log_cleared.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : effacer le journal de sécurité Windows supprime les traces (logons,
+  créations de comptes, exécutions) pour ralentir l'investigation. Aucune raison
+  légitime en PME d'effacer le journal Security -> signal quasi certain de compromission.
+MITRE : T1070.001 (Clear Windows Event Logs).
+TÉLÉMÉTRIE : Event dédié 1102 (Security effacé) / 104, normalisé `audit_log_cleared`,
+  OU création de processus invoquant l'effacement (wevtutil cl, Clear-EventLog).
+LOGIQUE : un seul événement suffit (pas de seuil) : l'effacement est en soi l'anomalie.
+SÉVÉRITÉ : critical.
+FAUX POSITIFS : maintenance légitime rare (réinstallation, purge planifiée) ->
+  exceptionnel en PME.
+
+
+================================================================================
+ PHASE 5 — DÉCOUVERTE / RECONNAISSANCE (l'attaquant cartographie le réseau)
+================================================================================
+
+--------------------------------------------------------------------------------
+ RÈGLE : Scan de ports  (network_scan.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : avant d'attaquer, l'adversaire cartographie le réseau (quels services
+  ouverts, quelles machines répondent). Détecter ce balayage = ALERTE PRÉCOCE, avant
+  l'exploitation.
+MITRE (selon origine) : externe -> T1595.001 (Active Scanning) ; interne -> T1046
+  (Network Service Discovery, mouvement latéral).
+TÉLÉMÉTRIE : logs pare-feu de connexions bloquées (`blocked_connection`), avec l'IP
+  source et le dest_port visé.
+LOGIQUE : on ne compte PAS le volume de connexions (un client mal configuré reboucle
+  sur UN port et gonfle le volume). On compte les PORTS DISTINCTS sondés par une même
+  IP : c'est le balayage qui signe le scan.
+SEUIL : 20 ports distincts / 2 min depuis une même IP. Usage légitime = 1-2 ports ;
+  un scanner (nmap) en teste des dizaines en secondes.
+SÉVÉRITÉ : externe -> high, interne -> medium.
+FAUX POSITIFS : scanner de vulns autorisé (Nessus/OpenVAS) -> liste blanche IP ;
+  sondes de supervision (peu de ports -> sous le seuil).
+
+
+================================================================================
+ PHASE 6 — IMPACT (l'attaquant frappe : chiffrement / vol)
+================================================================================
+
+--------------------------------------------------------------------------------
+ RÈGLE : Suppression des shadow copies  (shadow_copy_deletion.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : avant de chiffrer, quasi tous les ransomwares SUPPRIMENT les copies
+  d'ombre (Volume Shadow Copies) et désactivent la récupération Windows, pour
+  empêcher la restauration sans payer. ALERTE PRÉCOCE : la règle ransomware voit le
+  chiffrement en cours ; celle-ci le voit venir, quelques secondes AVANT.
+MITRE : T1490 (Inhibit System Recovery).
+TÉLÉMÉTRIE : création de processus (4688 / Sysmon 1), ligne de commande dans message.
+LOGIQUE (marqueurs forts, 1 suffit) : vssadmin/wmic/wbadmin qui suppriment, ou
+  bcdedit qui désactive la récupération (recoveryenabled no / ignoreallfailures).
+SÉVÉRITÉ : critical.
+FAUX POSITIFS : outil de sauvegarde appelant vssadmin -> liste blanche du compte de
+  service (rare en PME).
+
+--------------------------------------------------------------------------------
+ RÈGLE : Ransomware (chiffrement massif)  (ransomware.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : menace n°1 des PME : chiffre tous les fichiers partagés et paralyse
+  l'activité (souvent double extorsion). Détecter le chiffrement EN COURS permet
+  d'isoler le poste avant qu'il finisse.
+MITRE : T1486 (Data Encrypted for Impact).
+TÉLÉMÉTRIE : événements système de fichiers / EDR (`file_modified` / `file_renamed`),
+  avec new_extension et filename.
+LOGIQUE : on ne compte PAS le simple volume de fichiers modifiés (une sauvegarde en
+  modifie beaucoup sans être une attaque). On compte les écritures portant un
+  MARQUEUR de ransomware : extension de chiffrement connue (.locked, .encrypted,
+  .lockbit) ou hex aléatoire, OU nom de note de rançon (READ_ME, HOW_TO_DECRYPT).
+  Volume + marqueur = chiffrement en cours.
+SEUIL : 20 fichiers "marqués" / 3 min sur un même poste. Le ransomware chiffre vite ;
+  une copie légitime n'a AUCUN de ces marqueurs -> pas de faux positif de volume.
+  Ancienne version : "100 fichiers modifiés -> alerte" -> se déclenchait sur les
+  sauvegardes, copies, scans antivirus.
+SÉVÉRITÉ : critical (impact business immédiat).
+FAUX POSITIFS : outil de chiffrement légitime -> liste blanche du poste/processus.
+  Ne détecte pas un ransomware sans changement d'extension ni note (rare) ; un signal
+  d'entropie (EDR) serait complémentaire.
+
+--------------------------------------------------------------------------------
+ RÈGLE : Exfiltration de données  (data_exfiltration.rs)
+--------------------------------------------------------------------------------
+MENACE (PME) : vol de données par un salarié sur le départ, un compte compromis, ou
+  la "double extorsion" (données exfiltrées AVANT chiffrement pour faire pression).
+  Une des pertes les plus coûteuses pour une PME (fuite RGPD, secrets clients).
+MITRE : T1048 (Exfiltration Over Alternative Protocol).
+TÉLÉMÉTRIE : logs de flux réseau proxy/pare-feu (`network_flow`), avec bytes_out et dest_ip.
+LOGIQUE : on ne regarde PAS un transfert isolé (trop de faux positifs : sauvegardes,
+  visio). On agrège le VOLUME CUMULÉ sortant vers des destinations EXTERNES (IP
+  publiques) pour un même poste sur 1 heure.
+SEUIL : 500 Mo cumulés vers l'externe / poste / heure. Un poste bureautique envoie
+  quelques Ko-Mo (mails, navigation) ; 500 Mo/h vers des IP publiques est anormal.
+  Ancienne version : "transfert unique > 100 Mo -> alerte" -> déclenchait sur toute
+  sauvegarde/visio/upload légitime.
+SÉVÉRITÉ : high.
+FAUX POSITIFS : sauvegarde cloud (Backup SaaS) -> liste blanche IP ; gros envoi
+  ponctuel (WeTransfer) -> le seuil horaire limite le bruit.
+
+
+================================================================================
+ RÉCIT DE DÉMO POSSIBLE (enchaîner les règles = raconter une attaque complète)
+================================================================================
+On peut dérouler une kill-chain qui allume les règles dans l'ordre, pour montrer
+que le SIEM suit toute l'attaque :
+  1. network_scan          -> l'attaquant scanne le réseau
+  2. rdp_bruteforce        -> il force le RDP exposé
+  3. bruteforce_success    -> il finit par entrer
+  4. office_spawns_shell   -> (variante phishing) une macro lance un shell
+  5. powershell_suspect    -> download cradle obfusqué
+  6. cmd_execution         -> reconnaissance interne (whoami, net user)
+  7. new_account_admin     -> il se crée une porte dérobée admin
+  8. defense_disabled      -> il coupe l'antivirus
+  9. shadow_copy_deletion  -> il sabote la récupération
+  10. ransomware           -> il chiffre
+  11. data_exfiltration    -> il vole les données (double extorsion)
+  12. log_cleared          -> il efface les traces
+=> "Notre SIEM ne détecte pas une attaque, il détecte CHAQUE ÉTAPE d'une attaque."
+
+
+
+
+Les regles qu'on met en place essaye de couvrir l'ensemble des attaques possible, pour eviter tout les faux positif ainsi 
+qu'evviter les alertes fatigues 

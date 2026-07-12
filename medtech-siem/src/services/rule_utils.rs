@@ -230,3 +230,34 @@ pub async fn count_ransomware_writes_by_source(
 
     result.0
 }
+
+/// Nombre de PORTS de destination DISTINCTS sondés par une même IP source via
+/// des connexions bloquées, sur la fenêtre donnée.
+///
+/// C'est le nombre de ports distincts (balayage) — et non le volume — qui
+/// caractérise un scan : un client mal configuré reboucle sur UN port
+/// (distinct = 1), un scanner en teste des dizaines.
+pub async fn count_distinct_ports_by_ip(
+    db: &PgPool,
+    ip_address: &str,
+    since: NaiveDateTime,
+) -> i64 {
+
+    let result: (i64,) = sqlx::query_as(
+        r#"
+        SELECT COUNT(DISTINCT raw_log->>'dest_port')
+        FROM logs
+        WHERE ip_address = $1
+        AND event_type = 'blocked_connection'
+        AND raw_log->>'dest_port' IS NOT NULL
+        AND created_at >= $2
+        "#
+    )
+    .bind(ip_address)
+    .bind(since)
+    .fetch_one(db)
+    .await
+    .unwrap();
+
+    result.0
+}

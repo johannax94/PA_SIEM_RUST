@@ -1,40 +1,6 @@
-//! ============================================================================
-//! RÈGLE : Brute-force RDP depuis Internet
-//! ============================================================================
-//!
-//! MENACE (contexte PME)
-//!   Le RDP (Bureau à distance) laissé exposé sur Internet est le **vecteur
-//!   d'accès initial n°1 des ransomwares** contre les PME. Un attaquant scanne
-//!   le port 3389, puis tente des milliers de mots de passe automatiquement.
-//!
-//! MITRE ATT&CK
-//!   - T1110.001  Brute Force: Password Guessing
-//!   - T1021.001  Remote Services: Remote Desktop Protocol
-//!
-//! TÉLÉMÉTRIE PRIMITIVE (on dérive l'attaque, on ne la « lit » pas)
-//!   Événement Windows Security **4625** (« An account failed to log on »),
-//!   normalisé en event_type `login_failed`, avec dans raw_log :
-//!     - `logon_type = 10`  -> RemoteInteractive (= une session RDP)
-//!     - l'IP source (`ip_address`)
-//!
-//! LOGIQUE DE DÉTECTION
-//!   1. échec de logon (4625)
-//!   2. de type RDP (logon_type 10)
-//!   3. depuis une IP **externe** (le RDP interne = l'IT, pas la menace)
-//!   4. >= SEUIL échecs depuis la **même IP** sur la fenêtre
-//!
-//! SEUIL — JUSTIFICATION
-//!   20 échecs / 5 min depuis une seule IP externe. Un utilisateur légitime se
-//!   trompe 2-3 fois ; 20 tentatives en 5 min = outil automatisé. La fenêtre
-//!   courte + le regroupement par IP ciblent le comportement machine.
-//!
-//! FAUX POSITIFS & LIMITES
-//!   - Un scanner de vulnérabilités autorisé -> à mettre en liste blanche d'IP.
-//!   - Plusieurs employés derrière une même IP publique (NAT) -> rare en RDP.
-//!   - IPv6 : on considère externe tout ce qui n'est pas loopback.
-//!
-//! SÉVÉRITÉ : high (précurseur direct de ransomware).
-//! ============================================================================
+//! RÈGLE : Brute-force RDP depuis Internet — MITRE T1110.001 / T1021.001
+//! 20 échecs RDP (logon_type 10) / 5 min depuis une IP externe. Sévérité high.
+//! Doc détaillée (menace, télémétrie, faux positifs) : voir soutenance_ideas (racine du repo).
 
 use crate::services::rule_context::RuleContext;
 

@@ -28,14 +28,14 @@ export default function LandingPage() {
         </h1>
 
         <p className="landing-tagline">
-          Security Information &amp; Event Management
+          SIEM pour les PME
         </p>
 
         <p className="landing-desc">
-          Bienvenue sur le SIEM concu spécialement pour l'infrastructure MedTech.
-          Vous trouverez Collecte centralisée des logs, corrélation par règles et détection des
+          Bienvenue sur le SIEM concu spécialement pour les entreprises PME.
+          Dans ce SIEM vous trouverez principalement la Collecte centralisée des logs, corrélation par règles et détection des
           menaces en temps réel (brute-force, compromission de comptes, password
-          spraying…) — avec tableau de bord, alertes et recherche avancée.
+          spraying…) — avec tableau de bord, alertes et recherche avancée avec un système de push notification.
         </p>
 
         <div className="landing-actions">
@@ -80,7 +80,7 @@ export default function LandingPage() {
               <span className="pricing-period">/ mois</span>
             </div>
             <Link
-              to="/login"
+              to="/contact"
               className="btn"
               style={{ width: "100%", justifyContent: "center" }}
             >
@@ -97,7 +97,7 @@ export default function LandingPage() {
               <span className="pricing-period">/ an</span>
             </div>
             <Link
-              to="/login"
+              to="/contact"
               className="btn btn-primary"
               style={{ width: "100%", justifyContent: "center" }}
             >

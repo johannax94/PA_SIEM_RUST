@@ -1,37 +1,6 @@
-//! ============================================================================
-//! RÈGLE : Brute-force ciblé sur un compte
-//! ============================================================================
-//!
-//! MENACE (contexte PME)
-//!   Un attaquant s'acharne sur UN compte précis — typiquement l'admin, la
-//!   compta ou le dirigeant, dont l'identifiant a fuité ou a été deviné (OSINT).
-//!   À distinguer du password spraying (beaucoup de comptes, peu d'essais) :
-//!   ici c'est un seul compte qui est martelé.
-//!
-//! MITRE ATT&CK
-//!   - T1110.001  Brute Force: Password Guessing
-//!
-//! TÉLÉMÉTRIE PRIMITIVE
-//!   Échec d'authentification (Windows Event 4625, échec SSH/VPN/webmail…),
-//!   normalisé en event_type `login_failed`, portant le `username` visé.
-//!
-//! LOGIQUE DE DÉTECTION
-//!   Compter les échecs pour un MÊME compte sur une fenêtre courte, puis
-//!   pondérer la sévérité selon que le compte est privilégié ou non.
-//!
-//! SEUIL — JUSTIFICATION
-//!   10 échecs / 5 min sur le même compte. Un utilisateur légitime se trompe
-//!   2-3 fois puis réinitialise ; 10 essais rapprochés = outil automatisé ou
-//!   attaque ciblée.
-//!
-//! SÉVÉRITÉ — BASÉE SUR LE RISQUE
-//!   critical si le compte est privilégié (admin/root…), sinon high.
-//!
-//! FAUX POSITIFS & LIMITES
-//!   - Mot de passe oublié / client mal configuré qui reboucle -> le seuil
-//!     limite le bruit ; on peut exclure des comptes de service connus.
-//!   - Le verrouillage de compte (lockout) peut stopper avant le seuil.
-//! ============================================================================
+//! RÈGLE : Brute-force ciblé sur un compte — MITRE T1110.001
+//! 10 échecs / 5 min sur un MÊME compte (username). critical si privilégié, sinon high.
+//! Doc détaillée (menace, télémétrie, faux positifs) : voir soutenance_ideas (racine du repo).
 
 use crate::services::rule_context::RuleContext;
 
