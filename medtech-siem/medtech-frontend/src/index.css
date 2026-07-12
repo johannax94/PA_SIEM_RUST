@@ -1278,12 +1278,6 @@ select.filter-select {
   font-weight: 500;
 }
 
-.landing-feature-icon {
-  color: var(--accent-2);
-  display: flex;
-  align-items: center;
-}
-
 .landing-footer {
   text-align: center;
   padding: 20px;
@@ -1358,19 +1352,6 @@ select.filter-select {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.contact-purposes li {
-  position: relative;
-  padding-left: 24px;
-}
-
-.contact-purposes li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--accent-2);
-  font-weight: 700;
 }
 
 .contact-about-note {
