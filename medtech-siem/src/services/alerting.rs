@@ -36,6 +36,18 @@ pub async fn create_alert(
     .bind(Utc::now().naive_utc())
     .execute(db)
     .await;
+
+    // RBA : chaque détection alimente aussi le score de risque de l'entité
+    // (voir services::risk) — c'est le cumul qui déclenche les incidents.
+    crate::services::risk::record_risk_event(db, source, rule, severity, message)
+        .await;
+
+    // Notifications email configurables : en tâche de fond pour ne pas bloquer
+    // l'ingestion pendant l'aller-retour SMTP (voir services::notifier).
+    let (db2, rule2, source2) = (db.clone(), rule.to_string(), source.to_string());
+    tokio::spawn(async move {
+        crate::services::notifier::check_and_notify(&db2, &rule2, &source2).await;
+    });
 }
 
 pub async fn alert_exists(
